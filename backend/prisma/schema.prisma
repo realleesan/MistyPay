@@ -7,4 +7,266 @@ generator client {
   provider = "prisma-client-js"
 }
 
-// TODO: Define schema tables as per Database_Design_v1.0.md
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+model User {
+  id           String        @id @default(uuid()) @db.Uuid
+  email        String        @unique @db.VarChar(255)
+  passwordHash String        @map("password_hash")
+  displayName  String?       @map("display_name") @db.VarChar(255)
+  country      String?       @db.VarChar(100)
+  status       UserStatus    @default(ACTIVE)
+  pinHash      String?       @map("pin_hash")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  sessions      UserSession[]
+  quotes        PaymentQuote[]
+  orders        PaymentOrder[]
+  notifications Notification[]
+
+  @@map("users")
+}
+
+model UserSession {
+  id               String   @id @default(uuid()) @db.Uuid
+  userId           String   @map("user_id") @db.Uuid
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshDashToken String   @map("refresh_token_hash")
+  deviceId         String?  @map("device_id") @db.VarChar(255)
+  deviceName       String?  @map("device_name") @db.VarChar(255)
+  ipAddress        String?  @map("ip_address") @db.VarChar(100)
+  expiresAt        DateTime @map("expires_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@map("user_sessions")
+}
+
+enum AdminRole {
+  ADMIN
+  OPERATOR
+}
+
+model AdminUser {
+  id           String     @id @default(uuid()) @db.Uuid
+  email        String     @unique @db.VarChar(255)
+  passwordHash String     @map("password_hash")
+  role         AdminRole
+  status       UserStatus @default(ACTIVE)
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  @@map("admin_users")
+}
+
+enum QuoteStatus {
+  QUOTE_CREATED
+  QUOTE_EXPIRED
+  QUOTE_USED
+}
+
+model PaymentQuote {
+  id                    String      @id @default(uuid()) @db.Uuid
+  userId                String      @map("user_id") @db.Uuid
+  user                  User        @relation(fields: [userId], references: [id])
+  merchantBankCode      String?     @map("merchant_bank_code") @db.VarChar(50)
+  merchantBankName      String?     @map("merchant_bank_name") @db.VarChar(255)
+  merchantAccountNumber String?     @map("merchant_account_number") @db.VarChar(100)
+  merchantAccountName   String?     @map("merchant_account_name") @db.VarChar(255)
+  amountVnd             Decimal     @map("amount_vnd") @db.Decimal(18, 2)
+  rateUsdtVnd           Decimal     @map("rate_usdt_vnd") @db.Decimal(18, 6)
+  serviceFeeUsdt        Decimal     @default(0) @map("service_fee_usdt") @db.Decimal(18, 6)
+  networkFeeUsdt        Decimal     @default(0) @map("network_fee_usdt") @db.Decimal(18, 6)
+  totalUsdt             Decimal     @map("total_usdt") @db.Decimal(18, 6)
+  status                QuoteStatus @default(QUOTE_CREATED)
+  expiresAt             DateTime    @map("expires_at")
+  createdAt             DateTime    @default(now()) @map("created_at")
+  updatedAt             DateTime    @updatedAt @map("updated_at")
+
+  paymentOrder PaymentOrder?
+
+  @@map("payment_quotes")
+  @@index([userId])
+  @@index([status])
+}
+
+enum PaymentStatus {
+  WAITING_USDT
+  USDT_DETECTED
+  USDT_CONFIRMED
+  UNDERPAID
+  OVERPAID
+  EXPIRED
+}
+
+enum PayoutStatus {
+  PAYOUT_PENDING
+  PAYOUT_PROCESSING
+  PAYOUT_SUCCESS
+  PAYOUT_FAILED
+}
+
+enum FinalStatus {
+  SUCCESS
+  FAILED
+  REFUND_REQUIRED
+  CANCELLED
+  MANUAL_REVIEW
+}
+
+model PaymentOrder {
+  id                    String         @id @default(uuid()) @db.Uuid
+  userId                String         @map("user_id") @db.Uuid
+  user                  User           @relation(fields: [userId], references: [id])
+  quoteId               String         @unique @map("quote_id") @db.Uuid
+  quote                 PaymentQuote   @relation(fields: [quoteId], references: [id])
+  orderCode             String         @unique @map("order_code") @db.VarChar(100)
+  amountVnd             Decimal        @map("amount_vnd") @db.Decimal(18, 2)
+  requiredUsdt          Decimal        @map("required_usdt") @db.Decimal(18, 6)
+  receivedUsdt          Decimal?       @default(0) @map("received_usdt") @db.Decimal(18, 6)
+  merchantBankCode      String?        @map("merchant_bank_code") @db.VarChar(50)
+  merchantBankName      String?        @map("merchant_bank_name") @db.VarChar(255)
+  merchantAccountNumber String?        @map("merchant_account_number") @db.VarChar(100)
+  merchantAccountName   String?        @map("merchant_account_name") @db.VarChar(255)
+  paymentStatus         PaymentStatus  @default(WAITING_USDT) @map("payment_status")
+  payoutStatus          PayoutStatus?  @map("payout_status")
+  finalStatus           FinalStatus?   @map("final_status")
+  expiresAt             DateTime       @map("expires_at")
+  completedAt           DateTime?      @map("completed_at")
+  createdAt             DateTime       @default(now()) @map("created_at")
+  updatedAt             DateTime       @updatedAt @map("updated_at")
+
+  blockchainTransactions BlockchainTransaction[]
+  payoutTransactions     PayoutTransaction[]
+
+  @@map("payment_orders")
+  @@index([userId])
+  @@index([orderCode])
+  @@index([paymentStatus])
+  @@index([finalStatus])
+}
+
+enum BlockchainTxStatus {
+  DETECTED
+  CONFIRMED
+  FAILED
+  IGNORED
+}
+
+model BlockchainTransaction {
+  id             String             @id @default(uuid()) @db.Uuid
+  paymentOrderId String?            @map("payment_order_id") @db.Uuid
+  paymentOrder   PaymentOrder?      @relation(fields: [paymentOrderId], references: [id])
+  network        String             @db.VarChar(50)
+  tokenSymbol    String             @map("token_symbol") @db.VarChar(50)
+  txHash         String             @unique @map("tx_hash") @db.VarChar(255)
+  fromAddress    String?            @map("from_address") @db.VarChar(255)
+  toAddress      String             @map("to_address") @db.VarChar(255)
+  amount         Decimal            @db.Decimal(18, 6)
+  blockNumber    BigInt?            @map("block_number")
+  confirmations  Int                @default(0)
+  status         BlockchainTxStatus @default(DETECTED)
+  detectedAt     DateTime           @default(now()) @map("detected_at")
+  confirmedAt    DateTime?          @map("confirmed_at")
+  rawPayload     Json?              @map("raw_payload")
+  createdAt      DateTime           @default(now()) @map("created_at")
+  updatedAt      DateTime           @updatedAt @map("updated_at")
+
+  @@map("blockchain_transactions")
+  @@index([txHash])
+  @@index([paymentOrderId])
+}
+
+enum WalletType {
+  SETTLEMENT
+  TREASURY
+  COLD
+  HOT
+}
+
+model SystemWallet {
+  id            String     @id @default(uuid()) @db.Uuid
+  network       String     @db.VarChar(50)
+  tokenSymbol   String     @map("token_symbol") @db.VarChar(50)
+  walletAddress String     @map("wallet_address") @db.VarChar(255)
+  walletType    WalletType @map("wallet_type")
+  status        String     @default("ACTIVE") @db.VarChar(50)
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+
+  @@map("system_wallets")
+}
+
+model PayoutTransaction {
+  id                String       @id @default(uuid()) @db.Uuid
+  paymentOrderId    String       @map("payment_order_id") @db.Uuid
+  paymentOrder      PaymentOrder @relation(fields: [paymentOrderId], references: [id])
+  provider          String       @db.VarChar(50)
+  providerReference String?      @map("provider_reference") @db.VarChar(255)
+  bankCode          String       @map("bank_code") @db.VarChar(50)
+  bankName          String?      @map("bank_name") @db.VarChar(255)
+  accountNumber     String       @map("account_number") @db.VarChar(100)
+  accountName       String?      @map("account_name") @db.VarChar(255)
+  amountVnd         Decimal      @map("amount_vnd") @db.Decimal(18, 2)
+  status            PayoutStatus @default(PAYOUT_PENDING)
+  retryCount        Int          @default(0) @map("retry_count")
+  errorCode         String?      @map("error_code") @db.VarChar(100)
+  errorMessage      String?      @map("error_message")
+  requestedAt       DateTime?    @map("requested_at")
+  completedAt       DateTime?    @map("completed_at")
+  rawRequest        Json?        @map("raw_request")
+  rawResponse       Json?        @map("raw_response")
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
+
+  @@map("payout_transactions")
+  @@index([paymentOrderId])
+  @@index([status])
+}
+
+model RateSnapshot {
+  id            String   @id @default(uuid()) @db.Uuid
+  baseCurrency  String   @map("base_currency") @db.VarChar(20)
+  quoteCurrency String   @map("quote_currency") @db.VarChar(20)
+  rate          Decimal  @db.Decimal(18, 6)
+  provider      String   @db.VarChar(100)
+  sourcePayload Json?    @map("source_payload")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@map("rate_snapshots")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorType  String   @map("actor_type") @db.VarChar(50)
+  actorId    String?  @map("actor_id") @db.Uuid
+  action     String   @db.VarChar(100)
+  entityType String?  @map("entity_type") @db.VarChar(100)
+  entityId   String?  @map("entity_id") @db.Uuid
+  metadata   Json?
+  ipAddress  String?  @map("ip_address") @db.VarChar(100)
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("audit_logs")
+  @@index([actorType, actorId])
+  @@index([entityType, entityId])
+}
+
+model Notification {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String    @db.VarChar(255)
+  message   String
+  type      String    @db.VarChar(50)
+  isRead    Boolean   @default(false) @map("is_read")
+  createdAt DateTime  @default(now()) @map("created_at")
+  readAt    DateTime? @map("read_at")
+
+  @@map("notifications")
+}
