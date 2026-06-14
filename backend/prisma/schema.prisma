@@ -132,6 +132,7 @@ model PaymentOrder {
   merchantBankName      String?        @map("merchant_bank_name") @db.VarChar(255)
   merchantAccountNumber String?        @map("merchant_account_number") @db.VarChar(100)
   merchantAccountName   String?        @map("merchant_account_name") @db.VarChar(255)
+  depositAddress        String         @map("deposit_address") @db.VarChar(255)
   paymentStatus         PaymentStatus  @default(WAITING_USDT) @map("payment_status")
   payoutStatus          PayoutStatus?  @map("payout_status")
   finalStatus           FinalStatus?   @map("final_status")

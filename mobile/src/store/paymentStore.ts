@@ -23,18 +23,36 @@ export interface PaymentQuote {
   };
 }
 
+export interface PaymentOrderDetails {
+  id: string;
+  orderCode: string;
+  requiredUsdt: number;
+  depositAddress: string;
+  expiresAt: string; // ISO string
+  paymentStatus: string;
+  merchant: {
+    name: string;
+    bankName: string;
+    accountNumber: string;
+  };
+}
+
 interface PaymentState {
   scannedMerchant: ScannedMerchant | null;
   currentQuote: PaymentQuote | null;
+  activePayment: PaymentOrderDetails | null;
   setScannedMerchant: (merchant: ScannedMerchant | null) => void;
   setCurrentQuote: (quote: PaymentQuote | null) => void;
+  setActivePayment: (payment: PaymentOrderDetails | null) => void;
   clearPayment: () => void;
 }
 
 export const usePaymentStore = create<PaymentState>((set) => ({
   scannedMerchant: null,
   currentQuote: null,
+  activePayment: null,
   setScannedMerchant: (scannedMerchant) => set({ scannedMerchant }),
   setCurrentQuote: (currentQuote) => set({ currentQuote }),
-  clearPayment: () => set({ scannedMerchant: null, currentQuote: null }),
+  setActivePayment: (activePayment) => set({ activePayment }),
+  clearPayment: () => set({ scannedMerchant: null, currentQuote: null, activePayment: null }),
 }));

@@ -9,6 +9,7 @@ import { UsersModule } from './modules/users/users.module';
 import { RatesModule } from './modules/rates/rates.module';
 import { QrModule } from './modules/qr/qr.module';
 import { QuotesModule } from './modules/quotes/quotes.module';
+import { PaymentsModule } from './modules/payments/payments.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { QuotesModule } from './modules/quotes/quotes.module';
     RatesModule,
     QrModule,
     QuotesModule,
+    PaymentsModule,
   ],
   controllers: [],
   providers: [],
