@@ -6,6 +6,9 @@ import { PrismaModule } from './common/prisma/prisma.module';
 import { HealthModule } from './modules/health/health.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
+import { RatesModule } from './modules/rates/rates.module';
+import { QrModule } from './modules/qr/qr.module';
+import { QuotesModule } from './modules/quotes/quotes.module';
 
 @Module({
   imports: [
@@ -18,6 +21,9 @@ import { UsersModule } from './modules/users/users.module';
     HealthModule,
     AuthModule,
     UsersModule,
+    RatesModule,
+    QrModule,
+    QuotesModule,
   ],
   controllers: [],
   providers: [],
