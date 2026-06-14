@@ -12,6 +12,7 @@ import { QuotesModule } from './modules/quotes/quotes.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { BlockchainModule } from './modules/blockchain/blockchain.module';
 import { PayoutsModule } from './modules/payouts/payouts.module';
+import { AdminModule } from './modules/admin/admin.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { PayoutsModule } from './modules/payouts/payouts.module';
     PaymentsModule,
     BlockchainModule,
     PayoutsModule,
+    AdminModule,
   ],
   controllers: [],
   providers: [],

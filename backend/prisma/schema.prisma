@@ -271,3 +271,17 @@ model Notification {
 
   @@map("notifications")
 }
+
+model ReconciliationReport {
+  id                   String   @id @default(uuid()) @db.Uuid
+  reportDate           DateTime @unique @map("report_date") @db.Date
+  totalOrdersCount     Int      @map("total_orders_count")
+  totalUsdtReceived    Decimal  @map("total_usdt_received") @db.Decimal(18, 6)
+  totalVndPayout       Decimal  @map("total_vnd_payout") @db.Decimal(18, 2)
+  discrepanciesCount   Int      @map("discrepancies_count")
+  discrepanciesDetails Json?    @map("discrepancies_details")
+  status               String   @db.VarChar(50)
+  createdAt            DateTime @default(now()) @map("created_at")
+
+  @@map("reconciliation_reports")
+}
