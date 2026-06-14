@@ -2,6 +2,8 @@ import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/commo
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { BlockchainTxStatus, PaymentStatus } from '@prisma/client';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 
 @Injectable()
 export class BlockchainService implements OnModuleInit, OnModuleDestroy {
@@ -15,6 +17,7 @@ export class BlockchainService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    @InjectQueue('payout') private readonly payoutQueue: Queue,
   ) {}
 
   onModuleInit() {
@@ -221,6 +224,33 @@ export class BlockchainService implements OnModuleInit, OnModuleDestroy {
       });
 
       this.logger.log(`Order ${order.orderCode} state updated to ${nextStatus}. Received: ${receivedAmount} USDT`);
+
+      // Trigger Payout via BullMQ if status is USDT_CONFIRMED
+      if (nextStatus === PaymentStatus.USDT_CONFIRMED) {
+        try {
+          await this.payoutQueue.add(
+            'processPayout',
+            {
+              paymentId: order.id,
+              orderCode: order.orderCode,
+              amountVnd: Number(order.amountVnd),
+              bankCode: order.merchantBankCode || '970422', // Default mock bank code if empty
+              accountNumber: order.merchantAccountNumber || '123456789',
+              accountName: order.merchantAccountName || 'Merchant Name',
+            },
+            {
+              attempts: 3,
+              backoff: {
+                type: 'exponential',
+                delay: 60000,
+              },
+            },
+          );
+          this.logger.log(`Payout job queued in BullMQ for order ${order.orderCode}`);
+        } catch (queueErr) {
+          this.logger.error(`Failed to queue payout job in BullMQ: ${queueErr.message}`);
+        }
+      }
 
       // Trigger Telegram Alert
       await this.sendTelegramAlert(order.orderCode, nextStatus, receivedAmount);

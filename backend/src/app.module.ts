@@ -11,6 +11,7 @@ import { QrModule } from './modules/qr/qr.module';
 import { QuotesModule } from './modules/quotes/quotes.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { BlockchainModule } from './modules/blockchain/blockchain.module';
+import { PayoutsModule } from './modules/payouts/payouts.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { BlockchainModule } from './modules/blockchain/blockchain.module';
     QuotesModule,
     PaymentsModule,
     BlockchainModule,
+    PayoutsModule,
   ],
   controllers: [],
   providers: [],
