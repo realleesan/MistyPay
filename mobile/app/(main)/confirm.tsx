@@ -16,30 +16,30 @@ export default function ConfirmScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <ArrowLeft size={24} stroke="#FFFFFF" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Xác nhận thanh toán</Text>
+        <Text style={styles.headerTitle}>Confirm Payment</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <View style={styles.container}>
         <ShieldCheck size={64} stroke="#10B981" style={{ marginBottom: 24 }} />
         
-        <Text style={styles.title}>Xác thực giao dịch</Text>
+        <Text style={styles.title}>Confirm Transaction</Text>
         
         <Text style={styles.desc}>
-          Màn hình này sẽ yêu cầu xác thực bằng mã PIN bảo mật để hoàn tất thanh toán. 
-          Chức năng sẽ được hoàn thiện trong Sprint 3.
+          This screen will request secure PIN authentication to complete the payment. 
+          This flow will be fully implemented in Sprint 3.
         </Text>
 
         {currentQuote && (
           <View style={styles.summaryBox}>
-            <Text style={styles.label}>Tổng số tiền cần trả:</Text>
+            <Text style={styles.label}>Total Payment Amount:</Text>
             <Text style={styles.value}>{currentQuote.totalUsdt.toFixed(2)} USDT</Text>
             <Text style={styles.subLabel}>~ {new Intl.NumberFormat('vi-VN').format(currentQuote.amountVnd)} VND</Text>
           </View>
         )}
 
         <TouchableOpacity style={styles.button} onPress={() => router.replace('/(main)')}>
-          <Text style={styles.buttonText}>Quay lại Trang chủ</Text>
+          <Text style={styles.buttonText}>Back to Home</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

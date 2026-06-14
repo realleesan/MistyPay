@@ -30,7 +30,7 @@ export default function QuoteScreen() {
   // Redirect back if no merchant scanned
   useEffect(() => {
     if (!scannedMerchant) {
-      Alert.alert('Không có thông tin', 'Vui lòng quét mã QR trước.');
+      Alert.alert('Missing Info', 'Please scan a QR code first.');
       router.replace('/(main)/scan');
       return;
     }
@@ -82,11 +82,11 @@ export default function QuoteScreen() {
       if (response && response.success && response.data) {
         setCurrentQuote(response.data);
       } else {
-        throw new Error('Không nhận được dữ liệu báo giá từ hệ thống');
+        throw new Error('Failed to retrieve quote details from the server');
       }
     } catch (error: any) {
       console.error('Fetch Quote Error:', error);
-      Alert.alert('Lỗi báo giá', error.message || 'Không thể lấy báo giá tỷ giá hiện tại.');
+      Alert.alert('Quote Error', error.message || 'Could not fetch current exchange rate quote.');
     } finally {
       setIsFetchingQuote(false);
     }
@@ -95,7 +95,7 @@ export default function QuoteScreen() {
   const handleGetQuotePress = () => {
     const numericAmount = parseFloat(amountInput.replace(/[^0-9]/g, ''));
     if (isNaN(numericAmount) || numericAmount < 1000) {
-      Alert.alert('Số tiền không hợp lệ', 'Số tiền tối thiểu là 1.000 đ.');
+      Alert.alert('Invalid Amount', 'Minimum transaction amount is 1,000 VND.');
       return;
     }
     fetchQuote(numericAmount);
@@ -110,7 +110,7 @@ export default function QuoteScreen() {
 
   const handleConfirmQuote = () => {
     if (quoteExpired) {
-      Alert.alert('Báo giá hết hạn', 'Vui lòng cập nhật báo giá tỷ giá mới trước khi thanh toán.');
+      Alert.alert('Quote Expired', 'Please refresh to get a new quote before proceeding.');
       return;
     }
     // Navigate to Confirm Screen (to be finalized in Sprint 3)
@@ -126,7 +126,7 @@ export default function QuoteScreen() {
   const formatVndDisplay = (text: string) => {
     const clean = text.replace(/[^0-9]/g, '');
     if (!clean) return '';
-    return new Intl.NumberFormat('vi-VN').format(parseInt(clean, 10)) + ' đ';
+    return new Intl.NumberFormat('vi-VN').format(parseInt(clean, 10)) + ' VND';
   };
 
   const handleAmountChange = (text: string) => {
@@ -155,21 +155,21 @@ export default function QuoteScreen() {
           <TouchableOpacity style={styles.backButton} onPress={handleCancel}>
             <ArrowLeft size={24} stroke="#FFFFFF" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Chi tiết thanh toán</Text>
+          <Text style={styles.headerTitle}>Payment Details</Text>
           <View style={{ width: 40 }} />
         </View>
 
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           {/* Merchant Card */}
           <View style={styles.card}>
-            <Text style={styles.cardSectionTitle}>THÔNG TIN CỬA HÀNG</Text>
+            <Text style={styles.cardSectionTitle}>MERCHANT DETAILS</Text>
             
             <View style={styles.merchantDetailRow}>
               <Landmark size={20} stroke="#3B82F6" style={styles.iconStyle} />
               <View>
-                <Text style={styles.merchantLabel}>Ngân hàng thụ hưởng</Text>
+                <Text style={styles.merchantLabel}>Beneficiary Bank</Text>
                 <Text style={styles.merchantVal}>{scannedMerchant.bankName}</Text>
-                <Text style={styles.merchantSubVal}>STK: {scannedMerchant.accountNumber}</Text>
+                <Text style={styles.merchantSubVal}>Account: {scannedMerchant.accountNumber}</Text>
               </View>
             </View>
 
@@ -178,7 +178,7 @@ export default function QuoteScreen() {
             <View style={styles.merchantDetailRow}>
               <User size={20} stroke="#3B82F6" style={styles.iconStyle} />
               <View>
-                <Text style={styles.merchantLabel}>Người thụ hưởng (Merchant)</Text>
+                <Text style={styles.merchantLabel}>Beneficiary Name (Merchant)</Text>
                 <Text style={styles.merchantVal}>{scannedMerchant.merchantName}</Text>
               </View>
             </View>
@@ -186,19 +186,19 @@ export default function QuoteScreen() {
 
           {/* Amount Input Section */}
           <View style={styles.card}>
-            <Text style={styles.cardSectionTitle}>SỐ TIỀN THANH TOÁN (VND)</Text>
+            <Text style={styles.cardSectionTitle}>PAYMENT AMOUNT (VND)</Text>
             <View style={styles.inputContainer}>
               <TextInput
                 style={[
                   styles.amountInput,
                   scannedMerchant.amount !== null && styles.amountInputDisabled,
                 ]}
-                placeholder="Nhập số tiền (VND)"
+                placeholder="Enter amount (VND)"
                 placeholderTextColor="#64748B"
                 keyboardType="numeric"
                 value={
                   scannedMerchant.amount !== null
-                    ? new Intl.NumberFormat('vi-VN').format(scannedMerchant.amount) + ' đ'
+                    ? new Intl.NumberFormat('vi-VN').format(scannedMerchant.amount) + ' VND'
                     : displayAmount
                 }
                 onChangeText={handleAmountChange}
@@ -215,7 +215,7 @@ export default function QuoteScreen() {
                 {isFetchingQuote ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
-                  <Text style={styles.actionButtonText}>Xem báo giá tỷ giá</Text>
+                  <Text style={styles.actionButtonText}>Get Live Quote</Text>
                 )}
               </TouchableOpacity>
             )}
@@ -225,7 +225,7 @@ export default function QuoteScreen() {
           {isFetchingQuote && !currentQuote && (
             <View style={styles.quoteLoadingCard}>
               <ActivityIndicator size="large" color="#3B82F6" />
-              <Text style={styles.quoteLoadingText}>Đang lấy báo giá tỷ giá mới nhất...</Text>
+              <Text style={styles.quoteLoadingText}>Fetching latest exchange rate quote...</Text>
             </View>
           )}
 
@@ -233,15 +233,15 @@ export default function QuoteScreen() {
           {currentQuote && (
             <View style={[styles.card, quoteExpired && styles.cardExpired]}>
               <View style={styles.quoteHeader}>
-                <Text style={styles.cardSectionTitle}>BÁO GIÁ QUY ĐỔI USDT</Text>
+                <Text style={styles.cardSectionTitle}>USDT CONVERSION QUOTE</Text>
                 {quoteExpired ? (
                   <View style={styles.expiredTag}>
-                    <Text style={styles.expiredTagText}>Hết hạn</Text>
+                    <Text style={styles.expiredTagText}>Expired</Text>
                   </View>
                 ) : (
                   <View style={styles.timerContainer}>
                     <Clock size={14} stroke="#F59E0B" style={{ marginRight: 4 }} />
-                    <Text style={styles.timerText}>Hết hạn sau {countdown}s</Text>
+                    <Text style={styles.timerText}>Expires in {countdown}s</Text>
                   </View>
                 )}
               </View>
@@ -250,33 +250,33 @@ export default function QuoteScreen() {
               <View style={styles.rateHighlightBox}>
                 <DollarSign size={16} stroke="#3B82F6" />
                 <Text style={styles.rateHighlightText}>
-                  Tỷ giá hiện tại: 1 USDT = {new Intl.NumberFormat('vi-VN').format(currentQuote.rate)} VND
+                  Current Rate: 1 USDT = {new Intl.NumberFormat('vi-VN').format(currentQuote.rate)} VND
                 </Text>
               </View>
 
               {/* Calculations table */}
               <View style={styles.feeBreakdown}>
                 <View style={styles.feeRow}>
-                  <Text style={styles.feeLabel}>Số tiền quy đổi (VND / Rate)</Text>
+                  <Text style={styles.feeLabel}>Converted Amount (VND / Rate)</Text>
                   <Text style={styles.feeValue}>
                     {((currentQuote.amountVnd / currentQuote.rate)).toFixed(2)} USDT
                   </Text>
                 </View>
 
                 <View style={styles.feeRow}>
-                  <Text style={styles.feeLabel}>Phí dịch vụ (1.5%)</Text>
+                  <Text style={styles.feeLabel}>Service Fee (1.5%)</Text>
                   <Text style={styles.feeValue}>{currentQuote.serviceFee.toFixed(4)} USDT</Text>
                 </View>
 
                 <View style={styles.feeRow}>
-                  <Text style={styles.feeLabel}>Phí Blockchain (TRON Network)</Text>
+                  <Text style={styles.feeLabel}>Network Fee (TRON Blockchain)</Text>
                   <Text style={styles.feeValue}>{currentQuote.networkFee.toFixed(2)} USDT</Text>
                 </View>
 
                 <View style={styles.divider} />
 
                 <View style={[styles.feeRow, styles.totalRow]}>
-                  <Text style={styles.totalLabel}>TỔNG THANH TOÁN</Text>
+                  <Text style={styles.totalLabel}>TOTAL PAYMENT</Text>
                   <Text style={styles.totalValue}>{currentQuote.totalUsdt.toFixed(2)} USDT</Text>
                 </View>
               </View>
@@ -292,7 +292,7 @@ export default function QuoteScreen() {
                   ) : (
                     <>
                       <RefreshCw size={16} stroke="#3B82F6" style={{ marginRight: 8 }} />
-                      <Text style={styles.refreshButtonText}>Cập nhật tỷ giá mới</Text>
+                      <Text style={styles.refreshButtonText}>Refresh Quote</Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -309,10 +309,10 @@ export default function QuoteScreen() {
               onPress={handleConfirmQuote}
               disabled={quoteExpired}
             >
-              <Text style={styles.confirmButtonText}>Xác nhận thanh toán</Text>
+              <Text style={styles.confirmButtonText}>Confirm Payment</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.cancelLink} onPress={handleCancel}>
-              <Text style={styles.cancelLinkText}>Huỷ giao dịch</Text>
+              <Text style={styles.cancelLinkText}>Cancel Transaction</Text>
             </TouchableOpacity>
           </View>
         )}

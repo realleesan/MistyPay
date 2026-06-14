@@ -56,11 +56,11 @@ export default function ScanScreen() {
     } catch (error: any) {
       console.error('QR Parse Error:', error);
       Alert.alert(
-        'Lỗi quét QR',
-        error.message || 'Mã VietQR không hợp lệ hoặc không được hỗ trợ bởi hệ thống.',
+        'QR Scan Error',
+        error.message || 'Invalid VietQR code or not supported by the system.',
         [
           {
-            text: 'Quét lại',
+            text: 'Scan Again',
             onPress: () => {
               setScanned(false);
             },
@@ -78,7 +78,7 @@ export default function ScanScreen() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#2563EB" />
-        <Text style={styles.loadingText}>Đang khởi chạy camera...</Text>
+        <Text style={styles.loadingText}>Launching camera...</Text>
       </View>
     );
   }
@@ -91,19 +91,19 @@ export default function ScanScreen() {
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <ArrowLeft size={24} stroke="#FFFFFF" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Quét mã QR</Text>
+          <Text style={styles.headerTitle}>Scan QR Code</Text>
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.permissionContainer}>
           <View style={styles.infoIconBox}>
             <Info size={48} stroke="#3B82F6" />
           </View>
-          <Text style={styles.permissionTitle}>Quyền truy cập Camera</Text>
+          <Text style={styles.permissionTitle}>Camera Permission</Text>
           <Text style={styles.permissionDesc}>
-            MistyPay cần quyền sử dụng camera của bạn để quét mã QR VietQR từ các cửa hàng tiện lợi và nhà hàng.
+            MistyPay needs access to your camera to scan VietQR codes at merchants.
           </Text>
           <TouchableOpacity style={styles.grantButton} onPress={requestPermission}>
-            <Text style={styles.grantButtonText}>Cấp quyền truy cập</Text>
+            <Text style={styles.grantButtonText}>Grant Permission</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -117,7 +117,7 @@ export default function ScanScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <ArrowLeft size={24} stroke="#FFFFFF" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Quét mã QR</Text>
+        <Text style={styles.headerTitle}>Scan QR Code</Text>
         <TouchableOpacity
           style={[styles.flashButton, torchEnabled && styles.flashButtonActive]}
           onPress={() => setTorchEnabled(!torchEnabled)}
@@ -141,7 +141,7 @@ export default function ScanScreen() {
         {/* Scan Frame HUD Overlay */}
         <View style={styles.overlayMask}>
           <Text style={styles.instructionText}>
-            Di chuyển camera gần mã VietQR của cửa hàng
+            Align the VietQR code within the frame
           </Text>
 
           {/* Scanner View Box Frame */}
@@ -160,7 +160,7 @@ export default function ScanScreen() {
           </View>
 
           <Text style={styles.helperText}>
-            Hệ thống sẽ tự động đối sánh mã ngân hàng và tài khoản
+            We will automatically parse merchant banking info
           </Text>
         </View>
       </View>
