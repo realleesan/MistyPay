@@ -10,6 +10,7 @@ import { RatesModule } from './modules/rates/rates.module';
 import { QrModule } from './modules/qr/qr.module';
 import { QuotesModule } from './modules/quotes/quotes.module';
 import { PaymentsModule } from './modules/payments/payments.module';
+import { BlockchainModule } from './modules/blockchain/blockchain.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { PaymentsModule } from './modules/payments/payments.module';
     QrModule,
     QuotesModule,
     PaymentsModule,
+    BlockchainModule,
   ],
   controllers: [],
   providers: [],

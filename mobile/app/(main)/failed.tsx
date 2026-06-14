@@ -1,18 +1,33 @@
 import React from 'react';
 import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { XCircle, Home } from 'lucide-react-native';
 import { usePaymentStore } from '../../src/store/paymentStore';
 
 export default function FailedScreen() {
   const router = useRouter();
+  const { reason } = useLocalSearchParams<{ reason: string }>();
   const { clearPayment } = usePaymentStore();
 
   const handleReturnHome = () => {
     clearPayment();
     router.replace('/(main)');
   };
+
+  let title = 'Transaction Failed';
+  let desc = 'The payment process was cancelled or an error occurred during verification.';
+
+  if (reason === 'EXPIRED') {
+    title = 'Transaction Expired';
+    desc = 'The 15-minute payment window has expired or this deposit request was cancelled. No USDT transfer was detected in time.';
+  } else if (reason === 'UNDERPAID') {
+    title = 'Payment Underpaid';
+    desc = 'We detected your transaction, but the USDT amount sent was lower than required. This order is queued for manual review.';
+  } else if (reason === 'OVERPAID') {
+    title = 'Payment Overpaid';
+    desc = 'We detected your transaction, but the USDT amount sent was higher than required. This order is queued for manual review.';
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -22,10 +37,8 @@ export default function FailedScreen() {
           <XCircle size={72} stroke="#EF4444" />
         </View>
 
-        <Text style={styles.title}>Transaction Expired</Text>
-        <Text style={styles.desc}>
-          The 15-minute payment window has expired or this deposit request was cancelled. No USDT transfer was detected in time.
-        </Text>
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.desc}>{desc}</Text>
 
         <View style={styles.infoBox}>
           <Text style={styles.infoText}>

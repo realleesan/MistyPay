@@ -73,7 +73,7 @@ export default function PaymentScreen() {
 
   const handlePaymentExpired = () => {
     cleanupIntervals();
-    router.replace('/(main)/failed');
+    router.replace({ pathname: '/(main)/failed', params: { reason: 'EXPIRED' } });
   };
 
   const checkPaymentStatus = async () => {
@@ -88,7 +88,14 @@ export default function PaymentScreen() {
           cleanupIntervals();
           router.replace('/(main)/success');
         } else if (status === 'EXPIRED') {
-          handlePaymentExpired();
+          cleanupIntervals();
+          router.replace({ pathname: '/(main)/failed', params: { reason: 'EXPIRED' } });
+        } else if (status === 'UNDERPAID') {
+          cleanupIntervals();
+          router.replace({ pathname: '/(main)/failed', params: { reason: 'UNDERPAID' } });
+        } else if (status === 'OVERPAID') {
+          cleanupIntervals();
+          router.replace({ pathname: '/(main)/failed', params: { reason: 'OVERPAID' } });
         }
       }
     } catch (error) {
