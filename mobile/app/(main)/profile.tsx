@@ -6,10 +6,11 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  Image,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../src/store/authStore';
-import { User, LogOut, Lock, Globe, Shield, HelpCircle, ArrowLeft, Settings } from 'lucide-react-native';
+import { User, LogOut, Lock, Globe, Shield, HelpCircle, ArrowLeft, ChevronRight } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 
 export default function ProfileScreen() {
@@ -70,7 +71,11 @@ export default function ProfileScreen() {
         {/* Profile Card */}
         <View style={styles.profileCard}>
           <View style={styles.avatarContainer}>
-            <User size={28} stroke="#2563EB" />
+            {user?.avatar ? (
+              <Image source={{ uri: user.avatar }} style={styles.avatarImage} />
+            ) : (
+              <User size={28} stroke="#2563EB" />
+            )}
           </View>
           <View style={styles.profileInfo}>
             <Text style={styles.displayNameText}>{user?.displayName || 'Traveler'}</Text>
@@ -83,7 +88,7 @@ export default function ProfileScreen() {
             activeOpacity={0.7}
             onPress={() => router.push('/(main)/edit-profile')}
           >
-            <Settings size={20} stroke="#64748B" />
+            <Text style={styles.arrowText}>❯</Text>
           </TouchableOpacity>
         </View>
 
@@ -131,7 +136,11 @@ export default function ProfileScreen() {
           <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Support</Text>
 
           {/* Help & Support */}
-          <TouchableOpacity style={styles.optionRow} activeOpacity={0.7}>
+          <TouchableOpacity 
+            style={styles.optionRow} 
+            activeOpacity={0.7}
+            onPress={() => router.push('/(main)/help-center')}
+          >
             <View style={styles.optionLeft}>
               <HelpCircle size={20} stroke="#64748B" style={styles.optionIcon} />
               <Text style={styles.optionText}>Help Center</Text>
@@ -212,6 +221,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 16,
   },
+  avatarImage: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+  },
   profileInfo: {
     flex: 1,
     justifyContent: 'center',
@@ -228,8 +242,8 @@ const styles = StyleSheet.create({
   },
   settingsButton: {
     padding: 8,
-    borderRadius: 20,
-    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   optionsContainer: {
     backgroundColor: '#FFFFFF',

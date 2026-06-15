@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../src/store/authStore';
@@ -19,13 +20,13 @@ import {
   User, 
   ArrowLeft, 
   Pencil, 
-  ShieldAlert, 
   Mail, 
   Lock, 
   ChevronRight, 
   AlertTriangle 
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -52,6 +53,7 @@ export default function EditProfileScreen() {
         email: userProfile.email,
         displayName: userProfile.displayName,
         country: userProfile.country,
+        avatar: userProfile.avatar,
         hasPin: userProfile.hasPin,
       });
     } catch (error) {
@@ -144,15 +146,39 @@ export default function EditProfileScreen() {
     }
   };
 
-  const handleAvatarPress = () => {
-    Alert.alert('Change Avatar', 'Avatar upload is coming soon! Custom profile photo support is under development.');
-  };
+  const handleAvatarPress = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'MistyPay needs access to your gallery to change your profile picture.');
+        return;
+      }
 
-  const handleKycPress = () => {
-    Alert.alert(
-      'Identity Verification',
-      'KYC Identity verification is not required yet. This feature will be enabled in a future system update.'
-    );
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.2, // Compress high quality photos to save database storage
+        base64: true,
+      });
+
+      if (result.canceled || !result.assets || result.assets.length === 0) {
+        return;
+      }
+
+      setLoading(true);
+      const pickedAsset = result.assets[0];
+      const base64Image = `data:image/jpeg;base64,${pickedAsset.base64}`;
+
+      await api.patch('/users/profile', { avatar: base64Image });
+      await refreshProfile();
+      Alert.alert('Success', 'Profile picture updated successfully!');
+    } catch (error: any) {
+      console.error('Change Avatar Error:', error);
+      Alert.alert('Error', error.message || 'Failed to update profile picture. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const renderModalContent = () => {
@@ -363,7 +389,11 @@ export default function EditProfileScreen() {
             onPress={handleAvatarPress}
           >
             <View style={styles.avatarCircle}>
-              <User size={48} stroke="#2563EB" />
+              {user?.avatar ? (
+                <Image source={{ uri: user.avatar }} style={styles.avatarImage} />
+              ) : (
+                <User size={48} stroke="#2563EB" />
+              )}
             </View>
             <View style={styles.pencilOverlay}>
               <Pencil size={14} stroke="#FFFFFF" />
@@ -396,22 +426,6 @@ export default function EditProfileScreen() {
             </View>
             <View style={styles.rowRight}>
               <Text style={styles.rowValueText}>{user?.displayName || 'Traveler'}</Text>
-              <ChevronRight size={16} stroke="#CBD5E1" />
-            </View>
-          </TouchableOpacity>
-
-          {/* Identity Verification Row */}
-          <TouchableOpacity 
-            style={styles.rowItem} 
-            activeOpacity={0.7}
-            onPress={handleKycPress}
-          >
-            <View style={styles.rowLeft}>
-              <ShieldAlert size={20} stroke="#64748B" style={styles.rowIcon} />
-              <Text style={styles.rowLabelText}>Identity Verification</Text>
-            </View>
-            <View style={styles.rowRight}>
-              <Text style={[styles.rowValueText, styles.warningText]}>Not Verified</Text>
               <ChevronRight size={16} stroke="#CBD5E1" />
             </View>
           </TouchableOpacity>
@@ -547,6 +561,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 6,
     elevation: 3,
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 45,
   },
   pencilOverlay: {
     position: 'absolute',

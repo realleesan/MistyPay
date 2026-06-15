@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   Platform,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -156,7 +157,11 @@ export default function HomeScreen() {
             onPress={() => router.push('/(main)/profile')}
             activeOpacity={0.7}
           >
-            <User size={24} stroke="#2563EB" />
+            {user?.avatar ? (
+              <Image source={{ uri: user.avatar }} style={styles.avatarImage} />
+            ) : (
+              <User size={24} stroke="#2563EB" />
+            )}
           </TouchableOpacity>
         </View>
 
@@ -264,7 +269,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 20,
     paddingTop: 16,
-    paddingBottom: 32,
+    paddingBottom: 110,
   },
   header: {
     flexDirection: 'row',
@@ -288,6 +293,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#DBEAFE',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  avatarImage: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
   },
   card: {
     backgroundColor: '#FFFFFF',

@@ -7,6 +7,7 @@ export interface User {
   email: string;
   displayName?: string;
   country?: string;
+  avatar?: string;
   hasPin: boolean;
 }
 
@@ -99,6 +100,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           email: userProfile.email,
           displayName: userProfile.displayName,
           country: userProfile.country,
+          avatar: userProfile.avatar,
           hasPin: userProfile.hasPin,
         },
         isAuthenticated: true,

@@ -8,4 +8,8 @@ export class UpdateProfileDto {
   @IsString()
   @IsOptional()
   country?: string;
+
+  @IsString()
+  @IsOptional()
+  avatar?: string;
 }

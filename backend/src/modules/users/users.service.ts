@@ -34,6 +34,7 @@ export class UsersService {
       email: user.email,
       displayName: user.displayName,
       country: user.country,
+      avatar: user.avatar,
       status: user.status,
       hasPin: !!user.pinHash,
       createdAt: user.createdAt,
@@ -46,6 +47,7 @@ export class UsersService {
       data: {
         ...(dto.displayName && { displayName: dto.displayName }),
         ...(dto.country && { country: dto.country }),
+        ...(dto.avatar !== undefined && { avatar: dto.avatar }),
       },
     });
 
@@ -56,6 +58,7 @@ export class UsersService {
         email: user.email,
         displayName: user.displayName,
         country: user.country,
+        avatar: user.avatar,
         hasPin: !!user.pinHash,
       },
     };
