@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { envValidationSchema } from './config/env.validation';
 import { QueuesModule } from './modules/queues/queues.module';
 import { PrismaModule } from './common/prisma/prisma.module';
@@ -13,6 +14,7 @@ import { PaymentsModule } from './modules/payments/payments.module';
 import { BlockchainModule } from './modules/blockchain/blockchain.module';
 import { PayoutsModule } from './modules/payouts/payouts.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { BankHubModule } from './modules/bankhub/bankhub.module';
 
 @Module({
   imports: [
@@ -20,6 +22,7 @@ import { AdminModule } from './modules/admin/admin.module';
       isGlobal: true,
       validationSchema: envValidationSchema,
     }),
+    ScheduleModule.forRoot(),
     PrismaModule,
     QueuesModule,
     HealthModule,
@@ -32,8 +35,10 @@ import { AdminModule } from './modules/admin/admin.module';
     BlockchainModule,
     PayoutsModule,
     AdminModule,
+    BankHubModule,
   ],
   controllers: [],
   providers: [],
 })
 export class AppModule {}
+

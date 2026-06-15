@@ -1,7 +1,12 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
+import { Jimp } from 'jimp';
+import jsQR from 'jsqr';
+import { BankHubService } from '../bankhub/bankhub.service';
 
 @Injectable()
 export class QrService {
+  constructor(private readonly bankHubService: BankHubService) {}
+
   // Mapping of common Vietnamese NAPAS BIN codes to Bank Names
   private readonly bankBinMap: Record<string, string> = {
     '970422': 'MB Bank',
@@ -63,7 +68,7 @@ export class QrService {
   /**
    * Parses VietQR EMVCo content and extracts merchant information.
    */
-  parseVietQr(qrContent: string) {
+  async parseVietQr(qrContent: string) {
     if (!qrContent || qrContent.length < 10) {
       throw new BadRequestException('Invalid QR code: Content is empty or too short');
     }
@@ -103,7 +108,31 @@ export class QrService {
       const bankName = this.bankBinMap[bankBin] || `Bank (BIN: ${bankBin})`;
 
       // 3. Extract Merchant Name (Tag 59)
-      const merchantName = rootTags['59'] || 'Unknown Merchant';
+      let merchantName = rootTags['59']?.trim();
+
+      const isNameInvalid = (name: string | undefined) => {
+        if (!name) return true;
+        const lower = name.toLowerCase();
+        return lower === 'unknown' || lower === 'unknown merchant' || lower.includes('vietqr recipient');
+      };
+
+      // If merchantName is missing or generic, lookup via BankHub API
+      if (isNameInvalid(merchantName)) {
+        try {
+          merchantName = await this.bankHubService.resolveBeneficiaryName(bankBin, accountNumber);
+        } catch (lookupError: any) {
+          console.error('Failed to lookup BankHub account name:', lookupError);
+          throw new BadRequestException(
+            `Không thể xác thực số tài khoản: ${lookupError.message || 'Lỗi kết nối API'}`
+          );
+        }
+      }
+
+      if (isNameInvalid(merchantName)) {
+        throw new BadRequestException(
+          'Không thể tìm thấy tên chủ tài khoản thụ hưởng hợp lệ từ mã QR hoặc qua API.'
+        );
+      }
 
       // 4. Extract Amount (Tag 54) if exists
       let amount: number | null = null;
@@ -126,6 +155,29 @@ export class QrService {
         throw error;
       }
       throw new BadRequestException(`Failed to parse QR code: ${error.message}`);
+    }
+  }
+
+  /**
+   * Decodes QR code from an uploaded image buffer and parses it as VietQR.
+   */
+  async decodeQrFromImage(fileBuffer: Buffer) {
+    try {
+      const image = await Jimp.read(fileBuffer);
+      const { width, height } = image.bitmap;
+      const data = new Uint8ClampedArray(image.bitmap.data);
+
+      const qrCode = jsQR(data, width, height);
+      if (!qrCode) {
+        throw new BadRequestException('Could not detect any QR code in the uploaded image.');
+      }
+
+      return await this.parseVietQr(qrCode.data);
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException(`Failed to parse QR code from image: ${error.message}`);
     }
   }
 }

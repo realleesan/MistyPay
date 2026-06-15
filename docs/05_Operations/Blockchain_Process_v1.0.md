@@ -172,23 +172,20 @@ Not included in MVP.
 
 ---
 
-# 6. Payment Instruction Screen
+# 6. Payment Instruction Screen & Deep Linking
 
-## Display To User
+## Display To User & Automated Action
 
 ```text
-Amount Required
-
-19.43 USDT
-
-Network
-
-TRON (TRC20)
-
-Destination Wallet
-
-TXXXXXXXXXXXXXXXXXX
+Amount Required: 19.43 USDT
+Network: TRON (TRC-20)
+Destination Wallet: TXXXXXXXXXXXXXXXXXX
 ```
+
+Instead of relying solely on manual copy-pasting, the payment screen supports **App-to-App Deep Linking** (Option B) for automated initiation:
+1. **Quick Pay via Wallet:** Users can tap "TronLink", "Trust Wallet", or "Other Crypto Wallet" buttons.
+2. **Auto-Population:** The app triggers the respective protocol (`tronlink://`, `trust://`, or standard `tron:`) with pre-filled parameters (`to` address, `amount`, and asset type).
+3. **Approval:** The user only needs to authorize the transaction in their native wallet app and switch back.
 
 ---
 
@@ -197,9 +194,10 @@ TXXXXXXXXXXXXXXXXXX
 User must:
 
 ```text
-Use TRON Network
-Send USDT
-Send correct amount
+1. Authorize transaction via their selected wallet app (or manually transfer if fallback is used)
+2. Use TRON Network (TRC-20)
+3. Ensure sufficient TRX for network gas/fees in their wallet
+4. Maintain the app in foreground or return quickly to capture verification status
 ```
 
 ---

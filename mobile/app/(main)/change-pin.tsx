@@ -8,21 +8,24 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuthStore } from '../../src/store/authStore';
 import { api } from '../../src/services/api';
 import { Lock, ArrowLeft, AlertTriangle } from 'lucide-react-native';
 
-type SetupStep = 'ENTER' | 'CONFIRM' | 'PASSWORD';
+type SetupStep = 'VERIFY_OLD' | 'ENTER' | 'CONFIRM' | 'PASSWORD';
 
-export default function PinSetupScreen() {
+export default function ChangePinScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { setHasPin, logout } = useAuthStore();
+  const { user, setHasPin } = useAuthStore();
+  const { action } = useLocalSearchParams<{ action?: 'change' | 'disable' }>();
 
   const [step, setStep] = useState<SetupStep>('ENTER');
+  const [oldPin, setOldPin] = useState('');
   const [pin, setPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
   const [password, setPassword] = useState('');
@@ -30,6 +33,15 @@ export default function PinSetupScreen() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const inputRef = useRef<TextInput>(null);
+
+  // Initialize step based on whether user has a PIN
+  useEffect(() => {
+    if (user?.hasPin) {
+      setStep('VERIFY_OLD');
+    } else {
+      setStep('ENTER');
+    }
+  }, [user?.hasPin]);
 
   // Focus standard numeric input on step transition
   useEffect(() => {
@@ -41,59 +53,96 @@ export default function PinSetupScreen() {
     }
   }, [step]);
 
-  const handlePinChange = (text: string) => {
+  const handlePinChange = async (text: string) => {
     setErrorMsg(null);
     const cleaned = text.replace(/[^0-9]/g, '');
 
     if (cleaned.length > 6) return;
 
-    if (step === 'ENTER') {
-      setPin(cleaned);
+    if (step === 'VERIFY_OLD') {
+      setOldPin(cleaned);
       if (cleaned.length === 6) {
-        // Auto transition to confirm step
-        setTimeout(() => {
-          setStep('CONFIRM');
-        }, 200);
-      }
-    } else if (step === 'CONFIRM') {
-      setConfirmPin(cleaned);
-      if (cleaned.length === 6) {
-        if (pin === cleaned) {
-          // Match! Transition to password verification step
-          setTimeout(() => {
-            setStep('PASSWORD');
-          }, 200);
+        setLoading(true);
+        try {
+          if (action === 'disable') {
+            // Directly call disable endpoint if they just want to turn off the PIN
+            await api.post('/users/pin/disable', { pin: cleaned });
+            setHasPin(false);
+            setLoading(false);
+            Alert.alert(
+            'Success',
+            'Transaction PIN disabled successfully',
+            [{ text: 'OK', onPress: () => router.back() }]
+          );
         } else {
+          // Standard old PIN verification for change flow
+          await api.post('/users/pin/verify', { pin: cleaned });
           setTimeout(() => {
-            setErrorMsg('PINs do not match. Please try again.');
-            setConfirmPin('');
-            setPin('');
             setStep('ENTER');
-            inputRef.current?.focus();
-          }, 300);
+            setLoading(false);
+          }, 200);
         }
+      } catch (err: any) {
+        setTimeout(() => {
+          setErrorMsg(err?.message || 'Incorrect PIN. Please try again.');
+          setOldPin('');
+          setLoading(false);
+          inputRef.current?.focus();
+        }, 300);
       }
     }
-  };
-
-  const handlePasswordSubmit = async () => {
-    if (!password) {
-      setErrorMsg('Please enter your password.');
-      return;
+  } else if (step === 'ENTER') {
+    setPin(cleaned);
+    if (cleaned.length === 6) {
+      // Auto transition to confirm step
+      setTimeout(() => {
+        setStep('CONFIRM');
+      }, 200);
     }
+  } else if (step === 'CONFIRM') {
+    setConfirmPin(cleaned);
+    if (cleaned.length === 6) {
+      if (pin === cleaned) {
+        // Match! Transition to password verification step
+        setTimeout(() => {
+          setStep('PASSWORD');
+        }, 200);
+      } else {
+        setTimeout(() => {
+          setErrorMsg('PINs do not match. Please try again.');
+          setConfirmPin('');
+          setPin('');
+          setStep('ENTER');
+          inputRef.current?.focus();
+        }, 300);
+      }
+    }
+  }
+};
 
-    setLoading(true);
-    setErrorMsg(null);
+const handlePasswordSubmit = async () => {
+  if (!password) {
+    setErrorMsg('Please enter your password.');
+    return;
+  }
 
-    try {
-      await api.post('/users/pin/setup', {
-        pin,
-        password,
-      });
+  setLoading(true);
+  setErrorMsg(null);
 
-      // Update Zustand state
-      setHasPin(true);
-      // RootLayout will automatically transition to /(main) now!
+  try {
+    await api.post('/users/pin/setup', {
+      pin,
+      password,
+    });
+
+    // Update Zustand state
+    setHasPin(true);
+
+    Alert.alert(
+      'Success',
+      user?.hasPin ? 'Transaction PIN updated successfully' : 'Transaction PIN configured successfully',
+      [{ text: 'OK', onPress: () => router.back() }]
+    );
     } catch (err: any) {
       setErrorMsg(err?.message || 'Incorrect password. Please try again.');
     } finally {
@@ -102,7 +151,15 @@ export default function PinSetupScreen() {
   };
 
   const renderDots = () => {
-    const currentLength = step === 'ENTER' ? pin.length : confirmPin.length;
+    let currentLength = 0;
+    if (step === 'VERIFY_OLD') {
+      currentLength = oldPin.length;
+    } else if (step === 'ENTER') {
+      currentLength = pin.length;
+    } else if (step === 'CONFIRM') {
+      currentLength = confirmPin.length;
+    }
+
     return (
       <TouchableOpacity
         activeOpacity={1}
@@ -129,36 +186,42 @@ export default function PinSetupScreen() {
     );
   };
 
+  const getHeaderTitle = () => {
+    if (action === 'disable') return 'Disable PIN';
+    return user?.hasPin ? 'Change PIN' : 'Setup PIN';
+  };
+
   return (
     <View style={styles.safeArea}>
       {/* Header Back Button */}
-      <View style={[styles.header, { height: 56 + insets.top, paddingTop: insets.top }]}>
-        {step !== 'ENTER' ? (
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => {
-              setErrorMsg(null);
-              if (step === 'CONFIRM') {
-                setConfirmPin('');
-                setStep('ENTER');
-              } else if (step === 'PASSWORD') {
-                setPassword('');
-                setConfirmPin('');
-                setStep('CONFIRM');
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => {
+            setErrorMsg(null);
+            if (step === 'VERIFY_OLD') {
+              router.back();
+            } else if (step === 'ENTER') {
+              if (user?.hasPin) {
+                setOldPin('');
+                setStep('VERIFY_OLD');
+              } else {
+                router.back();
               }
-            }}
-          >
-            <ArrowLeft size={24} stroke="#0F172A" />
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => logout()}
-          >
-            <Text style={styles.logoutText}>Sign Out</Text>
-          </TouchableOpacity>
-        )}
-        <Text style={styles.headerTitle}>MistyPay Security</Text>
+            } else if (step === 'CONFIRM') {
+              setConfirmPin('');
+              setStep('ENTER');
+            } else if (step === 'PASSWORD') {
+              setPassword('');
+              setConfirmPin('');
+              setStep('CONFIRM');
+            }
+          }}
+        >
+          <ArrowLeft size={20} stroke="#0F172A" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>{getHeaderTitle()}</Text>
+        <View style={{ width: 40 }} />
       </View>
 
       <KeyboardAvoidingView
@@ -173,10 +236,27 @@ export default function PinSetupScreen() {
             </View>
           )}
 
+          {loading && step === 'VERIFY_OLD' && (
+            <ActivityIndicator size="large" color="#2563EB" style={{ marginBottom: 20 }} />
+          )}
+
+          {step === 'VERIFY_OLD' && (
+            <View style={styles.stepInfoContainer}>
+              <Lock size={40} stroke="#2563EB" style={styles.stepIcon} />
+              <Text style={styles.stepTitle}>Verify PIN</Text>
+              <Text style={styles.stepDescription}>
+                Enter your current 6-digit Transaction PIN to proceed.
+              </Text>
+              {renderDots()}
+            </View>
+          )}
+
           {step === 'ENTER' && (
             <View style={styles.stepInfoContainer}>
               <Lock size={40} stroke="#2563EB" style={styles.stepIcon} />
-              <Text style={styles.stepTitle}>Create Transaction PIN</Text>
+              <Text style={styles.stepTitle}>
+                {user?.hasPin ? 'Enter New PIN' : 'Create Transaction PIN'}
+              </Text>
               <Text style={styles.stepDescription}>
                 Enter a 6-digit PIN to secure your payments.
               </Text>
@@ -227,7 +307,9 @@ export default function PinSetupScreen() {
                 {loading ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
-                  <Text style={styles.primaryButtonText}>Complete Setup</Text>
+                  <Text style={styles.primaryButtonText}>
+                    {user?.hasPin ? 'Update PIN' : 'Complete Setup'}
+                  </Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -238,7 +320,7 @@ export default function PinSetupScreen() {
         {step !== 'PASSWORD' && (
           <TextInput
             ref={inputRef}
-            value={step === 'ENTER' ? pin : confirmPin}
+            value={step === 'VERIFY_OLD' ? oldPin : step === 'ENTER' ? pin : confirmPin}
             onChangeText={handlePinChange}
             keyboardType="number-pad"
             maxLength={6}
@@ -259,25 +341,24 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    justifyContent: 'center',
     paddingHorizontal: 16,
+    paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
     backgroundColor: '#FFFFFF',
   },
   backButton: {
-    position: 'absolute',
-    left: 16,
-    padding: 8,
-  },
-  logoutText: {
-    color: '#EF4444',
-    fontWeight: '600',
-    fontSize: 14,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
     color: '#0F172A',
   },

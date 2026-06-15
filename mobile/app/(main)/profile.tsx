@@ -7,12 +7,39 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../src/store/authStore';
-import { User, LogOut, Lock, Globe, Shield, HelpCircle } from 'lucide-react-native';
+import { User, LogOut, Lock, Globe, Shield, HelpCircle, ArrowLeft, Settings } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
 
 export default function ProfileScreen() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { user, logout } = useAuthStore();
+
+  const handlePinPress = () => {
+    if (!user?.hasPin) {
+      router.push({ pathname: '/(main)/change-pin', params: { action: 'change' } });
+      return;
+    }
+
+    Alert.alert(
+      'Transaction PIN Settings',
+      'Choose an action for your Transaction PIN:',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Disable PIN', 
+          style: 'destructive',
+          onPress: () => router.push({ pathname: '/(main)/change-pin', params: { action: 'disable' } }) 
+        },
+        { 
+          text: 'Change PIN', 
+          onPress: () => router.push({ pathname: '/(main)/change-pin', params: { action: 'change' } }) 
+        },
+      ]
+    );
+  };
 
   const handleSignOut = () => {
     Alert.alert(
@@ -26,7 +53,16 @@ export default function ProfileScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.safeArea}>
+      {/* Header */}
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <ArrowLeft size={20} stroke="#0F172A" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Profile</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -34,10 +70,21 @@ export default function ProfileScreen() {
         {/* Profile Card */}
         <View style={styles.profileCard}>
           <View style={styles.avatarContainer}>
-            <User size={36} stroke="#2563EB" />
+            <User size={28} stroke="#2563EB" />
           </View>
-          <Text style={styles.displayNameText}>{user?.displayName || 'Traveler'}</Text>
-          <Text style={styles.emailText}>{user?.email}</Text>
+          <View style={styles.profileInfo}>
+            <Text style={styles.displayNameText}>{user?.displayName || 'Traveler'}</Text>
+            <Text style={styles.emailText} numberOfLines={1} ellipsizeMode="middle">
+              ID: {user?.id || '...'}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={styles.settingsButton}
+            activeOpacity={0.7}
+            onPress={() => router.push('/(main)/edit-profile')}
+          >
+            <Settings size={20} stroke="#64748B" />
+          </TouchableOpacity>
         </View>
 
         {/* Options List */}
@@ -56,7 +103,11 @@ export default function ProfileScreen() {
           <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Security Settings</Text>
 
           {/* PIN Row */}
-          <TouchableOpacity style={styles.optionRow} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.optionRow}
+            activeOpacity={0.7}
+            onPress={handlePinPress}
+          >
             <View style={styles.optionLeft}>
               <Lock size={20} stroke="#64748B" style={styles.optionIcon} />
               <Text style={styles.optionText}>Transaction PIN</Text>
@@ -99,7 +150,7 @@ export default function ProfileScreen() {
           <Text style={styles.signOutButtonText}>Sign Out</Text>
         </TouchableOpacity>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -108,17 +159,41 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F8FAFC',
   },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
   scrollContent: {
     paddingHorizontal: 20,
     paddingTop: 24,
     paddingBottom: 40,
   },
   profileCard: {
+    flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
-    paddingVertical: 28,
-    paddingHorizontal: 20,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
     borderWidth: 1,
     borderColor: '#E2E8F0',
     marginBottom: 24,
@@ -129,23 +204,32 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   avatarContainer: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: '#DBEAFE',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginRight: 16,
+  },
+  profileInfo: {
+    flex: 1,
+    justifyContent: 'center',
   },
   displayNameText: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
     color: '#0F172A',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   emailText: {
     fontSize: 14,
     color: '#64748B',
+  },
+  settingsButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: '#F1F5F9',
   },
   optionsContainer: {
     backgroundColor: '#FFFFFF',

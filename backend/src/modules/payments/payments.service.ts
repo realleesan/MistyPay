@@ -218,4 +218,34 @@ export class PaymentsService {
       },
     };
   }
+
+  async getUserPayments(userId: string) {
+    const payments = await this.prisma.paymentOrder.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return {
+      success: true,
+      data: payments.map((p) => ({
+        id: p.id,
+        orderCode: p.orderCode,
+        amountVnd: Number(p.amountVnd),
+        requiredUsdt: Number(p.requiredUsdt),
+        receivedUsdt: Number(p.receivedUsdt || 0),
+        depositAddress: p.depositAddress,
+        paymentStatus: p.paymentStatus,
+        payoutStatus: p.payoutStatus,
+        finalStatus: p.finalStatus,
+        merchant: {
+          name: p.merchantAccountName,
+          bankName: p.merchantBankName,
+          accountNumber: p.merchantAccountNumber,
+        },
+        createdAt: p.createdAt.toISOString(),
+        expiresAt: p.expiresAt.toISOString(),
+        completedAt: p.completedAt ? p.completedAt.toISOString() : null,
+      })),
+    };
+  }
 }

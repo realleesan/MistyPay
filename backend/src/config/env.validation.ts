@@ -39,7 +39,7 @@ export const envValidationSchema = Joi.object({
   BLOCKCHAIN_POLL_INTERVAL_SECONDS: Joi.number().default(2),
   USDT_AMOUNT_TOLERANCE: Joi.number().default(0.01),
 
-  PAYOUT_PROVIDER: Joi.string().valid('BAOKIM', 'PAYOS').default('BAOKIM'),
+  PAYOUT_PROVIDER: Joi.string().valid('BAOKIM', 'PAYOS', 'BANKHUB').default('BAOKIM'),
   PAYOUT_CURRENCY: Joi.string().default('VND'),
   PAYOUT_MAX_RETRY: Joi.number().default(3),
   PAYOUT_RETRY_DELAY_SECONDS: Joi.number().default(60),
@@ -89,4 +89,11 @@ export const envValidationSchema = Joi.object({
   FEATURE_ADMIN_PANEL: Joi.boolean().default(true),
   FEATURE_NOTIFICATIONS: Joi.boolean().default(false),
   FEATURE_MANUAL_REVIEW: Joi.boolean().default(true),
+
+  VIETQR_CLIENT_ID: Joi.string().optional().allow(''),
+  VIETQR_API_KEY: Joi.string().optional().allow(''),
+
+  BANKHUB_CLIENT_ID: Joi.string().optional().allow(''),
+  BANKHUB_SECRET_KEY: Joi.string().optional().allow(''),
+  BANKHUB_API_URL: Joi.string().uri().default('https://sandbox.bankhub.dev'),
 });

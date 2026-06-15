@@ -89,6 +89,20 @@ export class UsersService {
     };
   }
 
+  async disablePin(userId: string, dto: VerifyPinDto) {
+    await this.verifyPin(userId, dto);
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { pinHash: null },
+    });
+
+    return {
+      success: true,
+      message: 'Transaction PIN disabled successfully',
+    };
+  }
+
   async verifyPin(userId: string, dto: VerifyPinDto) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -145,6 +159,66 @@ export class UsersService {
     return {
       success: true,
       message: 'PIN verified successfully',
+    };
+  }
+
+  async changeEmail(userId: string, dto: { email: string; password?: string }) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (dto.password) {
+      const isPasswordValid = await bcrypt.compare(dto.password, user.passwordHash);
+      if (!isPasswordValid) {
+        throw new UnauthorizedException('Invalid password');
+      }
+    }
+
+    const existing = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
+    if (existing && existing.id !== userId) {
+      throw new BadRequestException('Email already in use');
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { email: dto.email },
+    });
+
+    return {
+      success: true,
+      message: 'Email updated successfully',
+    };
+  }
+
+  async changePassword(userId: string, dto: { currentPassword: string; newPassword: string }) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const isPasswordValid = await bcrypt.compare(dto.currentPassword, user.passwordHash);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Incorrect current password');
+    }
+
+    const saltRounds = this.configService.get<number>('BCRYPT_SALT_ROUNDS', 12);
+    const passwordHash = await bcrypt.hash(dto.newPassword, saltRounds);
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    });
+
+    return {
+      success: true,
+      message: 'Password updated successfully',
     };
   }
 }

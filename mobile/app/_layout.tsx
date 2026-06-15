@@ -2,10 +2,11 @@ import { useEffect } from 'react';
 import { Slot, useRouter, useSegments } from 'expo-router';
 import { useAuthStore } from '../src/store/authStore';
 import { ActivityIndicator, View } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 
 export default function RootLayout() {
   const { isAuthenticated, isLoading, restoreSession, user } = useAuthStore();
-  const segments = useSegments();
+  const segments = useSegments() as string[];
   const router = useRouter();
 
   useEffect(() => {
@@ -22,8 +23,8 @@ export default function RootLayout() {
       // Redirect to login if not authenticated and trying to access private screens
       router.replace('/(auth)/login');
     } else if (isAuthenticated) {
-      if (!user?.hasPin && !onPinSetup) {
-        // Redirect to pin setup if authenticated but has no pin configured
+      if (!user?.hasPin && inAuthGroup && !onPinSetup) {
+        // Redirect to pin setup only if authenticated and currently in onboarding/auth screens
         router.replace('/(auth)/pin-setup');
       } else if (user?.hasPin && inAuthGroup) {
         // Redirect to main dashboard if authenticated and has pin, but still in auth screens
@@ -40,5 +41,10 @@ export default function RootLayout() {
     );
   }
 
-  return <Slot />;
+  return (
+    <>
+      <StatusBar style="dark" />
+      <Slot />
+    </>
+  );
 }

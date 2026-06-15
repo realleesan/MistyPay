@@ -1,16 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useState, useEffect, useRef } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, Alert, ActivityIndicator, TextInput } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, ShieldCheck, X } from 'lucide-react-native';
+import { ArrowLeft, ShieldCheck } from 'lucide-react-native';
 import { usePaymentStore } from '../../src/store/paymentStore';
 import { api } from '../../src/services/api';
 
 export default function ConfirmScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { currentQuote, setActivePayment } = usePaymentStore();
   const [pin, setPin] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const inputRef = useRef<TextInput>(null);
 
   // Auto-redirect if no quote is set
   useEffect(() => {
@@ -20,17 +22,13 @@ export default function ConfirmScreen() {
     }
   }, [currentQuote]);
 
-  const handleKeyPress = (num: string) => {
-    if (pin.length < 6) {
-      setPin((prev) => prev + num);
-    }
-  };
-
-  const handleDelete = () => {
-    if (pin.length > 0) {
-      setPin((prev) => prev.slice(0, -1));
-    }
-  };
+  // Focus the input on screen mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      inputRef.current?.focus();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Submit payment order when PIN reaches 6 digits
   useEffect(() => {
@@ -60,6 +58,7 @@ export default function ConfirmScreen() {
     } catch (error: any) {
       // Clear PIN on error
       setPin('');
+      inputRef.current?.focus();
       console.error('Payment Error:', error);
       Alert.alert('Payment Failed', error.message || 'Verification failed. Please try again.');
     } finally {
@@ -70,11 +69,11 @@ export default function ConfirmScreen() {
   if (!currentQuote) return null;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.safeArea}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { height: 56 + insets.top, paddingTop: insets.top }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()} disabled={isSubmitting}>
-          <ArrowLeft size={24} stroke="#FFFFFF" />
+          <ArrowLeft size={24} stroke="#0F172A" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Verification</Text>
         <View style={{ width: 40 }} />
@@ -106,8 +105,29 @@ export default function ConfirmScreen() {
           </View>
         </View>
 
+        {/* Hidden TextInput for native keyboard */}
+        <TextInput
+          ref={inputRef}
+          value={pin}
+          onChangeText={(text) => {
+            const cleaned = text.replace(/[^0-9]/g, '');
+            if (cleaned.length <= 6) {
+              setPin(cleaned);
+            }
+          }}
+          keyboardType="number-pad"
+          maxLength={6}
+          secureTextEntry={true}
+          style={styles.hiddenTextInput}
+          pointerEvents="none"
+        />
+
         {/* PIN Dots Display */}
-        <View style={styles.pinDotsContainer}>
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => inputRef.current?.focus()}
+          style={styles.pinDotsContainer}
+        >
           {[0, 1, 2, 3, 4, 5].map((index) => {
             const hasDigit = pin.length > index;
             return (
@@ -120,7 +140,7 @@ export default function ConfirmScreen() {
               />
             );
           })}
-        </View>
+        </TouchableOpacity>
 
         {/* Loading indicator */}
         {isSubmitting ? (
@@ -131,79 +151,24 @@ export default function ConfirmScreen() {
         ) : (
           <View style={{ height: 40 }} />
         )}
-
-        {/* Keypad Grid */}
-        <View style={styles.keypad}>
-          <View style={styles.keypadRow}>
-            {['1', '2', '3'].map((num) => (
-              <TouchableOpacity
-                key={num}
-                style={styles.keypadButton}
-                onPress={() => handleKeyPress(num)}
-                disabled={isSubmitting}
-              >
-                <Text style={styles.keypadText}>{num}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          <View style={styles.keypadRow}>
-            {['4', '5', '6'].map((num) => (
-              <TouchableOpacity
-                key={num}
-                style={styles.keypadButton}
-                onPress={() => handleKeyPress(num)}
-                disabled={isSubmitting}
-              >
-                <Text style={styles.keypadText}>{num}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          <View style={styles.keypadRow}>
-            {['7', '8', '9'].map((num) => (
-              <TouchableOpacity
-                key={num}
-                style={styles.keypadButton}
-                onPress={() => handleKeyPress(num)}
-                disabled={isSubmitting}
-              >
-                <Text style={styles.keypadText}>{num}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          <View style={styles.keypadRow}>
-            <View style={styles.keypadButtonPlaceholder} />
-            <TouchableOpacity
-              style={styles.keypadButton}
-              onPress={() => handleKeyPress('0')}
-              disabled={isSubmitting}
-            >
-              <Text style={styles.keypadText}>0</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.keypadButton}
-              onPress={handleDelete}
-              disabled={isSubmitting}
-            >
-              <X size={24} stroke="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
-        </View>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
   },
   header: {
-    height: 56,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
   },
   backButton: {
     padding: 8,
@@ -211,7 +176,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#0F172A',
   },
   container: {
     flex: 1,
@@ -222,23 +187,28 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#0F172A',
     marginBottom: 4,
   },
   desc: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: '#64748B',
     textAlign: 'center',
     marginBottom: 24,
   },
   summaryBox: {
     width: '100%',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
     marginBottom: 24,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
   },
   summaryRow: {
     flexDirection: 'row',
@@ -247,21 +217,21 @@ const styles = StyleSheet.create({
     marginVertical: 4,
   },
   summaryLabel: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 13,
   },
   summaryVal: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 14,
     fontWeight: '600',
   },
   summaryDivider: {
     height: 1,
-    backgroundColor: '#334155',
+    backgroundColor: '#E2E8F0',
     marginVertical: 8,
   },
   totalLabel: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 14,
     fontWeight: '700',
   },
@@ -287,12 +257,12 @@ const styles = StyleSheet.create({
     height: 16,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: '#334155',
+    borderColor: '#CBD5E1',
     marginHorizontal: 12,
   },
   pinDotFilled: {
-    backgroundColor: '#3B82F6',
-    borderColor: '#3B82F6',
+    backgroundColor: '#2563EB',
+    borderColor: '#2563EB',
   },
   loaderContainer: {
     flexDirection: 'row',
@@ -301,37 +271,14 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
   loadingText: {
-    color: '#3B82F6',
+    color: '#64748B',
     fontSize: 13,
     marginLeft: 8,
   },
-  keypad: {
-    width: '100%',
-    paddingHorizontal: 8,
-    marginTop: 'auto',
-    marginBottom: 24,
-  },
-  keypadRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginVertical: 6,
-  },
-  keypadButton: {
-    flex: 1,
-    height: 64,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 32,
-    marginHorizontal: 8,
-    backgroundColor: '#1E293B',
-  },
-  keypadButtonPlaceholder: {
-    flex: 1,
-    marginHorizontal: 8,
-  },
-  keypadText: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#FFFFFF',
+  hiddenTextInput: {
+    position: 'absolute',
+    width: 1,
+    height: 1,
+    opacity: 0,
   },
 });

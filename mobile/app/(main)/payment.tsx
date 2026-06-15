@@ -9,15 +9,17 @@ import {
   Image,
   Clipboard,
   ScrollView,
+  Linking,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Clock, Copy, Check, ArrowLeft, RefreshCw } from 'lucide-react-native';
+import { Clock, Copy, Check, ArrowLeft, RefreshCw, Wallet, Zap, ExternalLink } from 'lucide-react-native';
 import { usePaymentStore } from '../../src/store/paymentStore';
 import { api } from '../../src/services/api';
 
 export default function PaymentScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { activePayment, clearPayment } = usePaymentStore();
   const [timeLeft, setTimeLeft] = useState(0); // in seconds
   const [copiedAddress, setCopiedAddress] = useState(false);
@@ -119,6 +121,38 @@ export default function PaymentScreen() {
     setTimeout(() => setCopiedAmount(false), 2000);
   };
 
+  const handleOpenWallet = async (walletType: 'tronlink' | 'trust' | 'generic') => {
+    if (!activePayment) return;
+
+    const address = activePayment.depositAddress;
+    const amount = activePayment.requiredUsdt.toFixed(2);
+    let uri = '';
+
+    if (walletType === 'tronlink') {
+      uri = `tronlink://transfer?to=${address}&amount=${amount}&token=usdt`;
+    } else if (walletType === 'trust') {
+      uri = `trust://transfer?to=${address}&amount=${amount}&token=usdt`;
+    } else {
+      uri = `tron:${address}?amount=${amount}`;
+    }
+
+    try {
+      await Linking.openURL(uri);
+    } catch (error) {
+      console.log('Direct open failed, trying generic TRON URI:', error);
+      try {
+        const fallbackUri = `tron:${address}?amount=${amount}`;
+        await Linking.openURL(fallbackUri);
+      } catch (fallbackError) {
+        Alert.alert(
+          'Wallet App Not Found',
+          "We couldn't open your wallet app automatically. Please make sure TronLink, Trust Wallet, or another crypto wallet is installed, or copy the details below to transfer manually.",
+          [{ text: 'OK' }]
+        );
+      }
+    }
+  };
+
   const handleCancel = () => {
     Alert.alert(
       'Cancel Payment',
@@ -153,11 +187,11 @@ export default function PaymentScreen() {
   )}`;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.safeArea}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { height: 56 + insets.top, paddingTop: insets.top }]}>
         <TouchableOpacity style={styles.backButton} onPress={handleCancel}>
-          <ArrowLeft size={24} stroke="#FFFFFF" />
+          <ArrowLeft size={24} stroke="#0F172A" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>USDT Deposit</Text>
         <View style={{ width: 40 }} />
@@ -183,6 +217,43 @@ export default function PaymentScreen() {
             <Image source={{ uri: qrCodeUrl }} style={styles.qrImage} />
           </View>
           <Text style={styles.qrHelperText}>Scan this QR code from your crypto wallet to pay</Text>
+        </View>
+
+        {/* Quick Pay with Wallet Card */}
+        <View style={styles.walletCard}>
+          <View style={styles.walletHeader}>
+            <Zap size={18} fill="#F59E0B" color="#F59E0B" style={{ marginRight: 6 }} />
+            <Text style={styles.walletTitle}>Quick Pay via Wallet</Text>
+          </View>
+          <Text style={styles.walletSubtitle}>
+            Opens your installed wallet app with pre-filled details.
+          </Text>
+
+          <View style={styles.walletButtonsRow}>
+            <TouchableOpacity 
+              style={[styles.walletButton, styles.tronlinkButton]} 
+              onPress={() => handleOpenWallet('tronlink')}
+            >
+              <Wallet size={16} stroke="#FFFFFF" style={{ marginRight: 6 }} />
+              <Text style={styles.walletButtonText}>TronLink</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.walletButton, styles.trustButton]} 
+              onPress={() => handleOpenWallet('trust')}
+            >
+              <Wallet size={16} stroke="#FFFFFF" style={{ marginRight: 6 }} />
+              <Text style={styles.walletButtonText}>Trust Wallet</Text>
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity 
+            style={styles.genericWalletButton} 
+            onPress={() => handleOpenWallet('generic')}
+          >
+            <Text style={styles.genericWalletButtonText}>Other Crypto Wallet</Text>
+            <ExternalLink size={14} stroke="#94A3B8" style={{ marginLeft: 4 }} />
+          </TouchableOpacity>
         </View>
 
         {/* Payment Details Box */}
@@ -232,21 +303,23 @@ export default function PaymentScreen() {
           <Text style={styles.cancelButtonText}>Cancel & Return Home</Text>
         </TouchableOpacity>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
   },
   header: {
-    height: 56,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
   },
   backButton: {
     padding: 8,
@@ -254,7 +327,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#0F172A',
   },
   scrollContainer: {
     paddingHorizontal: 20,
@@ -264,9 +337,9 @@ const styles = StyleSheet.create({
   },
   networkBanner: {
     width: '100%',
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    backgroundColor: 'rgba(239, 68, 68, 0.05)',
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderColor: 'rgba(239, 68, 68, 0.15)',
     borderRadius: 12,
     padding: 12,
     marginBottom: 20,
@@ -279,7 +352,8 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   networkBannerSub: {
-    color: '#FCA5A5',
+    color: '#EF4444',
+    opacity: 0.8,
     fontSize: 11,
     textAlign: 'center',
     lineHeight: 16,
@@ -288,16 +362,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 30,
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
     marginBottom: 20,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.02,
+    shadowRadius: 2,
+    elevation: 1,
   },
   timerLabel: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 14,
   },
   timerText: {
@@ -313,10 +392,10 @@ const styles = StyleSheet.create({
     width: '100%',
     marginBottom: 20,
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.2,
-    shadowRadius: 15,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 2,
   },
   qrWrapper: {
     padding: 10,
@@ -336,12 +415,17 @@ const styles = StyleSheet.create({
   },
   detailsCard: {
     width: '100%',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
     marginBottom: 24,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
   },
   detailRow: {
     flexDirection: 'row',
@@ -361,7 +445,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   addressText: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 13,
     fontWeight: '500',
     lineHeight: 18,
@@ -370,19 +454,19 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#334155',
+    backgroundColor: '#F1F5F9',
     justifyContent: 'center',
     alignItems: 'center',
   },
   divider: {
     height: 1,
-    backgroundColor: '#334155',
+    backgroundColor: '#E2E8F0',
     marginVertical: 14,
   },
   pollingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    backgroundColor: 'rgba(37, 99, 235, 0.05)',
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 16,
@@ -391,7 +475,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   pollingText: {
-    color: '#3B82F6',
+    color: '#2563EB',
     fontSize: 13,
     fontWeight: '500',
   },
@@ -402,11 +486,82 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
   },
   cancelButtonText: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 15,
     fontWeight: '600',
+  },
+  walletCard: {
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 20,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  walletHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  walletTitle: {
+    color: '#0F172A',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  walletSubtitle: {
+    color: '#64748B',
+    fontSize: 12,
+    marginBottom: 14,
+    lineHeight: 16,
+  },
+  walletButtonsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  walletButton: {
+    flex: 0.48,
+    height: 44,
+    borderRadius: 10,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tronlinkButton: {
+    backgroundColor: '#E84142', // TRON Brand Red
+  },
+  trustButton: {
+    backgroundColor: '#3375BB', // Trust Wallet Blue
+  },
+  walletButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  genericWalletButton: {
+    width: '100%',
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: '#F1F5F9',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  genericWalletButtonText: {
+    color: '#475569',
+    fontSize: 13,
+    fontWeight: '500',
   },
 });

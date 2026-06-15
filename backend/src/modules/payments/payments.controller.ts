@@ -33,6 +33,11 @@ export class PaymentsController {
     return this.paymentsService.createPayment(userId, createPaymentDto);
   }
 
+  @Get()
+  async getUserPayments(@GetUser('id') userId: string) {
+    return this.paymentsService.getUserPayments(userId);
+  }
+
   @Post(':id/simulate-deposit')
   @HttpCode(HttpStatus.OK)
   async simulateDeposit(

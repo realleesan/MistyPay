@@ -33,6 +33,15 @@ export class UsersController {
     return this.usersService.setupPin(userId, setupPinDto);
   }
 
+  @Post('pin/disable')
+  @HttpCode(HttpStatus.OK)
+  async disablePin(
+    @GetUser('id') userId: string,
+    @Body() verifyPinDto: VerifyPinDto,
+  ) {
+    return this.usersService.disablePin(userId, verifyPinDto);
+  }
+
   @Post('pin/verify')
   @HttpCode(HttpStatus.OK)
   async verifyPin(
@@ -40,5 +49,23 @@ export class UsersController {
     @Body() verifyPinDto: VerifyPinDto,
   ) {
     return this.usersService.verifyPin(userId, verifyPinDto);
+  }
+
+  @Post('profile/email')
+  @HttpCode(HttpStatus.OK)
+  async changeEmail(
+    @GetUser('id') userId: string,
+    @Body() body: { email: string; password?: string },
+  ) {
+    return this.usersService.changeEmail(userId, body);
+  }
+
+  @Post('profile/password')
+  @HttpCode(HttpStatus.OK)
+  async changePassword(
+    @GetUser('id') userId: string,
+    @Body() body: { currentPassword: string; newPassword: string },
+  ) {
+    return this.usersService.changePassword(userId, body);
   }
 }

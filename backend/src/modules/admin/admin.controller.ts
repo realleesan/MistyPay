@@ -3,10 +3,14 @@ import { AdminService } from './admin.service';
 import { AdminAuthGuard } from './guards/admin-auth.guard';
 import { GetAdmin } from './decorators/get-admin.decorator';
 import { Request } from 'express';
+import { BankHubService } from '../bankhub/bankhub.service';
 
 @Controller('admin')
 export class AdminController {
-  constructor(private readonly adminService: AdminService) {}
+  constructor(
+    private readonly adminService: AdminService,
+    private readonly bankHubService: BankHubService,
+  ) {}
 
   @Post('auth/login')
   @HttpCode(HttpStatus.OK)
@@ -67,5 +71,33 @@ export class AdminController {
   ) {
     const ip = req.ip || req.socket.remoteAddress;
     return this.adminService.runManualReconciliation(date, adminId, ip);
+  }
+
+  // BankHub (Cas) Integration Endpoints
+  @Get('bankhub/status')
+  @UseGuards(AdminAuthGuard)
+  async getBankHubStatus() {
+    return this.bankHubService.getStatus();
+  }
+
+  @Post('bankhub/grant-url')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AdminAuthGuard)
+  async getBankHubGrantUrl() {
+    return this.bankHubService.generateGrantUrl();
+  }
+
+  @Post('bankhub/exchange')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AdminAuthGuard)
+  async exchangeBankHubToken(@Body() body: { publicToken: string }) {
+    return this.bankHubService.exchangePublicToken(body.publicToken);
+  }
+
+  @Post('bankhub/disconnect')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AdminAuthGuard)
+  async disconnectBankHub() {
+    return this.bankHubService.disconnect();
   }
 }

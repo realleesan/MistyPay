@@ -11,7 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Clock, RefreshCw, Landmark, User, DollarSign } from 'lucide-react-native';
 import { api } from '../../src/services/api';
@@ -19,6 +19,7 @@ import { usePaymentStore } from '../../src/store/paymentStore';
 
 export default function QuoteScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { scannedMerchant, setCurrentQuote, currentQuote, clearPayment } = usePaymentStore();
 
   const [amountInput, setAmountInput] = useState('');
@@ -145,15 +146,15 @@ export default function QuoteScreen() {
   const displayAmount = amountInput ? formatVndDisplay(amountInput) : '';
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.safeArea}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { height: 56 + insets.top, paddingTop: insets.top }]}>
           <TouchableOpacity style={styles.backButton} onPress={handleCancel}>
-            <ArrowLeft size={24} stroke="#FFFFFF" />
+            <ArrowLeft size={24} stroke="#0F172A" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Payment Details</Text>
           <View style={{ width: 40 }} />
@@ -317,21 +318,23 @@ export default function QuoteScreen() {
           </View>
         )}
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
   },
   header: {
-    height: 56,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
   },
   backButton: {
     padding: 8,
@@ -339,19 +342,24 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#0F172A',
   },
   scrollContainer: {
     padding: 16,
     paddingBottom: 40,
   },
   card: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
   },
   cardExpired: {
     borderColor: '#EF4444',
@@ -380,24 +388,24 @@ const styles = StyleSheet.create({
   merchantVal: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#0F172A',
   },
   merchantSubVal: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: '#64748B',
     marginTop: 2,
   },
   divider: {
     height: 1,
-    backgroundColor: '#334155',
+    backgroundColor: '#E2E8F0',
     marginVertical: 14,
   },
   inputContainer: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
     borderRadius: 12,
     paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
     height: 60,
     justifyContent: 'center',
     marginBottom: 16,
@@ -405,10 +413,10 @@ const styles = StyleSheet.create({
   amountInput: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#3B82F6',
+    color: '#2563EB',
   },
   amountInputDisabled: {
-    color: '#94A3B8',
+    color: '#64748B',
   },
   actionButton: {
     height: 50,
@@ -423,17 +431,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   quoteLoadingCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 32,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
     marginBottom: 16,
   },
   quoteLoadingText: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 14,
     marginTop: 16,
   },
@@ -470,17 +478,17 @@ const styles = StyleSheet.create({
   rateHighlightBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(59, 130, 246, 0.08)',
+    backgroundColor: 'rgba(37, 99, 235, 0.05)',
     padding: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.2)',
+    borderColor: 'rgba(37, 99, 235, 0.15)',
     marginBottom: 20,
   },
   rateHighlightText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#60A5FA',
+    color: '#2563EB',
     marginLeft: 8,
   },
   feeBreakdown: {
@@ -493,12 +501,12 @@ const styles = StyleSheet.create({
   },
   feeLabel: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: '#64748B',
   },
   feeValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: '#0F172A',
   },
   totalRow: {
     paddingVertical: 10,
@@ -507,7 +515,7 @@ const styles = StyleSheet.create({
   totalLabel: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#0F172A',
   },
   totalValue: {
     fontSize: 22,
@@ -518,23 +526,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    backgroundColor: 'rgba(37, 99, 235, 0.08)',
     height: 48,
     borderRadius: 12,
     marginTop: 16,
     borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.3)',
+    borderColor: 'rgba(37, 99, 235, 0.15)',
   },
   refreshButtonText: {
-    color: '#3B82F6',
+    color: '#2563EB',
     fontSize: 15,
     fontWeight: '600',
   },
   bottomBar: {
     padding: 16,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
     borderTopWidth: 1,
-    borderColor: '#1E293B',
+    borderColor: '#E2E8F0',
   },
   confirmButton: {
     height: 54,
@@ -545,7 +553,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   confirmButtonDisabled: {
-    backgroundColor: '#334155',
+    backgroundColor: '#CBD5E1',
   },
   confirmButtonText: {
     color: '#FFFFFF',

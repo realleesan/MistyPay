@@ -72,7 +72,7 @@ export default function SuccessScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
   },
   container: {
     flex: 1,
@@ -94,13 +94,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 26,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: '#0F172A',
     marginBottom: 10,
     textAlign: 'center',
   },
   desc: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: '#64748B',
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 32,
@@ -108,12 +108,17 @@ const styles = StyleSheet.create({
   },
   receiptCard: {
     width: '100%',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
     marginBottom: 36,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
   },
   receiptRow: {
     flexDirection: 'row',
@@ -126,7 +131,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   receiptVal: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -137,7 +142,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: '#334155',
+    backgroundColor: '#E2E8F0',
     marginVertical: 12,
   },
   button: {

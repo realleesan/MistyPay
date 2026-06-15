@@ -10,17 +10,28 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { Scan, ArrowLeft, Zap, Info } from 'lucide-react-native';
+import { Scan, ArrowLeft, Zap, Info, Image as GalleryIcon } from 'lucide-react-native';
 import { api } from '../../src/services/api';
 import { usePaymentStore } from '../../src/store/paymentStore';
+import { useIsFocused } from '@react-navigation/native';
+import * as ImagePicker from 'expo-image-picker';
 
 export default function ScanScreen() {
   const router = useRouter();
+  const isFocused = useIsFocused();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [torchEnabled, setTorchEnabled] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const { setScannedMerchant } = usePaymentStore();
+
+  // Reset scan state when screen is refocused
+  useEffect(() => {
+    if (isFocused) {
+      setScanned(false);
+      setIsProcessing(false);
+    }
+  }, [isFocused]);
 
   useEffect(() => {
     if (permission && !permission.granted && permission.canAskAgain) {
@@ -49,7 +60,7 @@ export default function ScanScreen() {
         });
 
         // Navigate to the payment quote screen
-        router.push('/(main)/quote');
+        router.replace('/(main)/quote');
       } else {
         throw new Error('Invalid response from server');
       }
@@ -61,6 +72,85 @@ export default function ScanScreen() {
         [
           {
             text: 'Scan Again',
+            onPress: () => {
+              setScanned(false);
+            },
+          },
+        ]
+      );
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Handle photo library image selection and upload
+  const handleSelectImage = async () => {
+    if (scanned || isProcessing) return;
+
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'MistyPay needs access to your gallery to upload QR images.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: false,
+        quality: 1,
+      });
+
+      if (result.canceled || !result.assets || result.assets.length === 0) {
+        return;
+      }
+
+      setScanned(true);
+      setIsProcessing(true);
+
+      const pickedAsset = result.assets[0];
+      const localUri = pickedAsset.uri;
+      const filename = localUri.split('/').pop() || 'photo.jpg';
+
+      // Infer image mime type
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : `image/jpeg`;
+
+      const formData = new FormData();
+      // @ts-ignore - React Native FormData expects an object with uri, name, type
+      formData.append('image', {
+        uri: localUri,
+        name: filename,
+        type,
+      });
+
+      // Send the image to the backend to parse the QR code
+      const response = (await api.post('/qr/scan-image', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })) as any;
+
+      if (response && response.success && response.data) {
+        setScannedMerchant({
+          merchantName: response.data.merchantName,
+          bankName: response.data.bankName,
+          bankCode: response.data.bankCode,
+          accountNumber: response.data.accountNumber,
+          amount: response.data.amount,
+        });
+
+        router.replace('/(main)/quote');
+      } else {
+        throw new Error('No QR code detected in the selected image.');
+      }
+    } catch (error: any) {
+      console.error('Image Scan Error:', error);
+      Alert.alert(
+        'QR Scan Error',
+        error.message || 'Could not parse QR code from the selected image. Please try again or scan directly.',
+        [
+          {
+            text: 'Try Again',
             onPress: () => {
               setScanned(false);
             },
@@ -89,7 +179,7 @@ export default function ScanScreen() {
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <ArrowLeft size={24} stroke="#FFFFFF" />
+            <ArrowLeft size={24} stroke="#0F172A" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Scan QR Code</Text>
           <View style={{ width: 40 }} />
@@ -115,28 +205,30 @@ export default function ScanScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <ArrowLeft size={24} stroke="#FFFFFF" />
+          <ArrowLeft size={24} stroke="#0F172A" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Scan QR Code</Text>
         <TouchableOpacity
           style={[styles.flashButton, torchEnabled && styles.flashButtonActive]}
           onPress={() => setTorchEnabled(!torchEnabled)}
         >
-          <Zap size={20} stroke={torchEnabled ? '#F59E0B' : '#FFFFFF'} />
+          <Zap size={20} stroke={torchEnabled ? '#F59E0B' : '#0F172A'} />
         </TouchableOpacity>
       </View>
 
       {/* Camera Scanning View */}
       <View style={styles.cameraContainer}>
-        <CameraView
-          style={StyleSheet.absoluteFillObject}
-          facing="back"
-          enableTorch={torchEnabled}
-          barcodeScannerSettings={{
-            barcodeTypes: ['qr'],
-          }}
-          onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
-        />
+        {isFocused && (
+          <CameraView
+            style={StyleSheet.absoluteFillObject}
+            facing="back"
+            enableTorch={torchEnabled}
+            barcodeScannerSettings={{
+              barcodeTypes: ['qr'],
+            }}
+            onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
+          />
+        )}
 
         {/* Scan Frame HUD Overlay */}
         <View style={styles.overlayMask}>
@@ -162,6 +254,16 @@ export default function ScanScreen() {
           <Text style={styles.helperText}>
             We will automatically parse merchant banking info
           </Text>
+
+          {/* Import from Gallery button */}
+          <TouchableOpacity
+            style={styles.galleryButton}
+            onPress={handleSelectImage}
+            disabled={isProcessing}
+          >
+            <GalleryIcon size={20} stroke="#FFFFFF" style={styles.galleryIcon} />
+            <Text style={styles.galleryButtonText}>Import from Gallery</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </SafeAreaView>
@@ -171,16 +273,16 @@ export default function ScanScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
     justifyContent: 'center',
     alignItems: 'center',
   },
   loadingText: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 16,
     marginTop: 12,
   },
@@ -197,15 +299,15 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#0F172A',
   },
   flashButton: {
     padding: 8,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#F1F5F9',
   },
   flashButtonActive: {
-    backgroundColor: 'rgba(245, 158, 11, 0.2)',
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
   },
   cameraContainer: {
     flex: 1,
@@ -282,7 +384,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 32,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
   },
   infoIconBox: {
     width: 80,
@@ -296,12 +398,12 @@ const styles = StyleSheet.create({
   permissionTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#0F172A',
     marginBottom: 12,
   },
   permissionDesc: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: '#64748B',
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 32,
@@ -317,6 +419,25 @@ const styles = StyleSheet.create({
   grantButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
+    fontWeight: '600',
+  },
+  galleryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 24,
+    marginTop: 32,
+  },
+  galleryIcon: {
+    marginRight: 8,
+  },
+  galleryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
     fontWeight: '600',
   },
 });

@@ -1,11 +1,14 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
 const getBaseUrl = () => {
   if (__DEV__) {
-    // 10.0.2.2 is the IP address of the host machine for the Android emulator
-    return Platform.OS === 'android' ? 'http://10.0.2.2:3000/api/v1' : 'http://localhost:3000/api/v1';
+    // Dynamically extract the Metro bundler host IP address to connect to NestJS API
+    const hostUri = Constants.expoConfig?.hostUri;
+    const hostIp = hostUri ? hostUri.split(':').shift() : '192.168.0.100';
+    return `http://${hostIp}:3000/api/v1`;
   }
   return 'https://api.mistypay.com/api/v1';
 };
