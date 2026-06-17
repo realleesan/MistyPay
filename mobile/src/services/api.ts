@@ -3,7 +3,13 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
+const USE_STAGING = false; // Set to true to test with Staging Cloud Backend
+const STAGING_URL = 'https://your-koyeb-app.koyeb.app/api/v1';
+
 const getBaseUrl = () => {
+  if (USE_STAGING) {
+    return STAGING_URL;
+  }
   if (__DEV__) {
     // Dynamically extract the Metro bundler host IP address to connect to NestJS API
     const hostUri = Constants.expoConfig?.hostUri;
