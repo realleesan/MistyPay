@@ -12,6 +12,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
           port: configService.get<number>('REDIS_PORT', 6379),
           password: configService.get<string>('REDIS_PASSWORD', undefined) || undefined,
           db: configService.get<number>('REDIS_DB', 0),
+          tls: configService.get<string>('REDIS_HOST', 'localhost').includes('upstash.io') ? {} : undefined,
         },
       }),
       inject: [ConfigService],

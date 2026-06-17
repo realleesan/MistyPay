@@ -16,7 +16,7 @@ async function bootstrap() {
   app.useGlobalInterceptors(new LoggingInterceptor());
   app.enableCors();
 
-  const port = process.env.APP_PORT || 3000;
+  const port = process.env.PORT || process.env.APP_PORT || 3000;
   await app.listen(port);
   console.log(`MistyPay Backend starting on port ${port}`);
 }
