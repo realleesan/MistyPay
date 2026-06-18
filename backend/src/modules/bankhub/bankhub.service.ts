@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../common/prisma/prisma.service';
 
@@ -109,7 +109,7 @@ export class BankHubService {
    */
   public async generateGrantUrl(): Promise<{ grantToken: string; linkUrl: string }> {
     if (!this.clientId || !this.secretKey) {
-      throw new Error('BankHub Client ID and Secret Key must be configured.');
+      throw new BadRequestException('BankHub Client ID and Secret Key must be configured.');
     }
 
     const redirectUri = this.appUrl; // Whitelisted redirect in Cas dashboard
@@ -136,7 +136,7 @@ export class BankHubService {
     if (!response.ok || responseData.errorCode) {
       const errorMsg = responseData.errorMessage || responseData.errorCode || 'Failed to generate grant token';
       this.logger.error(`BankHub Grant Token Error: ${errorMsg}`);
-      throw new Error(errorMsg);
+      throw new BadRequestException(errorMsg);
     }
 
     const grantToken = responseData.grantToken;
@@ -164,7 +164,7 @@ export class BankHubService {
    */
   public async exchangePublicToken(publicToken: string): Promise<BankHubTokenData> {
     if (!this.clientId || !this.secretKey) {
-      throw new Error('BankHub Client ID and Secret Key must be configured.');
+      throw new BadRequestException('BankHub Client ID and Secret Key must be configured.');
     }
 
     const url = `${this.apiUrl}/grant/exchange`;
@@ -188,7 +188,7 @@ export class BankHubService {
     if (!response.ok || responseData.errorCode) {
       const errorMsg = responseData.errorMessage || responseData.errorCode || 'Failed to exchange public token';
       this.logger.error(`BankHub Exchange Token Error: ${errorMsg}`);
-      throw new Error(errorMsg);
+      throw new BadRequestException(errorMsg);
     }
 
     const tokenData: BankHubTokenData = {
