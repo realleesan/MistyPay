@@ -11,6 +11,14 @@ async function bootstrap() {
   app.use(json({ limit: '10mb' }));
   app.use(urlencoded({ limit: '10mb', extended: true }));
   app.setGlobalPrefix('api/v1');
+
+  // Redirect root path to bankhub-link page (retains Cas/BankHub OAuth redirect parameters)
+  const server = app.getHttpAdapter().getInstance();
+  server.get('/', (req, res) => {
+    const query = new URLSearchParams(req.query as any).toString();
+    res.redirect(`/api/v1/admin/bankhub-link${query ? '?' + query : ''}`);
+  });
+
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.useGlobalFilters(new HttpExceptionFilter());
   app.useGlobalInterceptors(new LoggingInterceptor());
