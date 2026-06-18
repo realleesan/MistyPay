@@ -112,7 +112,7 @@ export class BankHubService {
       throw new Error('BankHub Client ID and Secret Key must be configured.');
     }
 
-    const redirectUri = this.appUrl; // Whitelisted redirect in Cas dashboard
+    const redirectUri = `${this.appUrl}/api/v1/admin/bankhub-link`; // Redirect back to our static HTML tool
     const url = `${this.apiUrl}/grant/token`;
 
     this.logger.log(`Requesting grant token from ${url} with redirect ${redirectUri}`);
