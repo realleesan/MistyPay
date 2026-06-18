@@ -142,7 +142,7 @@ export class BankHubService {
     const grantToken = responseData.grantToken;
     const isSandbox = this.apiUrl.includes('sandbox');
     const linkBaseUrl = isSandbox ? 'https://dev.link.bankhub.dev' : 'https://link.cas.so';
-    const linkUrl = `${linkBaseUrl}?grantToken=${grantToken}`;
+    const linkUrl = `${linkBaseUrl}?grantToken=${grantToken}&redirectUri=${encodeURIComponent(redirectUri)}&iframe=false`;
 
     return { grantToken, linkUrl };
   }
