@@ -402,6 +402,29 @@ export class AdminController {
             <button id="disconnectBtn" class="btn btn-danger hidden" onclick="handleDisconnect()">
               Ngắt Kết Nối
             </button>
+
+            <!-- Debug Card -->
+            <div class="status-card" style="margin-top: 24px;">
+              <div class="status-header">
+                <div class="status-title" style="font-size: 14px;">Thông tin Cấu hình (Debug)</div>
+              </div>
+              <div class="info-row">
+                <span class="info-label">App URL</span>
+                <span id="debugAppUrl" class="info-val">-</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">API URL</span>
+                <span id="debugApiUrl" class="info-val">-</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Client ID</span>
+                <span id="debugClientId" class="info-val">-</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Secret Key</span>
+                <span id="debugSecretKey" class="info-val">-</span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -472,6 +495,22 @@ export class AdminController {
                 bankDetails.classList.add('hidden');
                 connectBtn.classList.remove('hidden');
                 disconnectBtn.classList.add('hidden');
+              }
+
+              // Fetch debug info
+              try {
+                const debugRes = await fetch(API_BASE + '/admin/bankhub/debug', {
+                  headers: getHeaders()
+                });
+                if (debugRes.ok) {
+                  const debugData = await debugRes.json();
+                  document.getElementById('debugAppUrl').innerText = debugData.appUrl || 'N/A';
+                  document.getElementById('debugApiUrl').innerText = debugData.apiUrl || 'N/A';
+                  document.getElementById('debugClientId').innerText = debugData.clientId || 'N/A';
+                  document.getElementById('debugSecretKey').innerText = debugData.secretKey || 'N/A';
+                }
+              } catch (dErr) {
+                console.error('Failed to load debug config:', dErr);
               }
             } catch (err) {
               showAlert('Lỗi kiểm tra kết nối: ' + err.message, 'danger');
