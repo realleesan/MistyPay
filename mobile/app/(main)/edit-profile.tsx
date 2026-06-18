@@ -27,6 +27,7 @@ import {
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
+import BottomSheet from '../../src/components/ui/BottomSheet';
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -476,21 +477,13 @@ export default function EditProfileScreen() {
       </ScrollView>
 
       {/* Editing Modal */}
-      <Modal
+      <BottomSheet
         visible={modalType !== 'NONE'}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setModalType('NONE')}
+        onClose={() => setModalType('NONE')}
+        showCloseButton={false}
       >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.modalOverlay}
-        >
-          <View style={styles.modalContainer}>
-            {renderModalContent()}
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+        {renderModalContent()}
+      </BottomSheet>
     </View>
   );
 }

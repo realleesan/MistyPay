@@ -6,16 +6,33 @@
     "orientation": "portrait",
     "scheme": "mistypay",
     "userInterfaceStyle": "automatic",
-    "platforms": ["ios", "android"],
+    "platforms": [
+      "ios",
+      "android"
+    ],
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.mistypay.app"
+      "bundleIdentifier": "com.mistypay.app",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "Allow MistyPay to use Face ID for secure biometric login.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#ffffff"
       },
-      "package": "com.mistypay.app"
+      "package": "com.mistypay.app",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
+      ]
     },
     "plugins": [
       "expo-router",
@@ -25,7 +42,25 @@
         {
           "cameraPermission": "MistyPay needs access to your camera to scan VietQR codes."
         }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow MistyPay to use Face ID for secure biometric login."
+        }
       ]
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "dcea8ed4-5f6b-41d7-a9d3-ff14705b7943"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/dcea8ed4-5f6b-41d7-a9d3-ff14705b7943"
+    }
   }
 }

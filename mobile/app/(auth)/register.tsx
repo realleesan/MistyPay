@@ -9,13 +9,14 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
-  Modal,
   FlatList,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../src/store/authStore';
-import { Mail, Lock, Eye, EyeOff, User, Globe, AlertTriangle, CheckCircle } from 'lucide-react-native';
+import { Mail, Lock, Eye, EyeOff, User, Globe, AlertTriangle, CheckCircle, Bell, UserPlus } from 'lucide-react-native';
+import BottomSheet from '../../src/components/ui/BottomSheet';
 
 const COUNTRIES = [
   { code: 'VN', name: 'Vietnam' },
@@ -80,7 +81,7 @@ export default function RegisterScreen() {
       await register(email.trim(), password, displayName.trim(), country.name);
       setSuccessMsg('Account created successfully!');
       
-      // Auto redirect to login screen after 2 seconds
+      // Auto redirect to login screen after 1.5 seconds
       setTimeout(() => {
         router.replace('/(auth)/login');
       }, 1500);
@@ -93,6 +94,30 @@ export default function RegisterScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      {/* Top Header Row (placed naturally in layout flow, avoiding notch/status bar) */}
+      <View style={styles.topHeader}>
+        {/* Left Logo */}
+        <View style={styles.topLogoContainer}>
+          <Text style={styles.topLogoText}>MistyPay</Text>
+        </View>
+
+        {/* Right Action Stack */}
+        <View style={styles.topRightContainer}>
+          {/* English Language UK Flag Circle */}
+          <TouchableOpacity style={styles.langButton} activeOpacity={0.7}>
+            <Image 
+              source={{ uri: 'https://flagcdn.com/w80/gb.png' }}
+              style={styles.flagImage}
+            />
+          </TouchableOpacity>
+          
+          {/* Notification Bell */}
+          <TouchableOpacity style={styles.bellButton} activeOpacity={0.7}>
+            <Bell size={22} stroke="#64748B" fill="none" />
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
@@ -102,25 +127,33 @@ export default function RegisterScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Header section */}
-          <View style={styles.headerContainer}>
-            <Text style={styles.brandText}>MistyPay</Text>
-            <Text style={styles.titleText}>Create Your Account</Text>
-            <Text style={styles.subtitleText}>Start paying like a local.</Text>
-          </View>
+          {/* Main Rounded Rect Card */}
+          <View style={styles.card}>
+            {/* Card Header Row */}
+            <View style={styles.cardHeader}>
+              <View style={styles.cardHeaderLeft}>
+                <Text style={styles.welcomeSubtitle}>Start paying like a local</Text>
+                <Text style={styles.welcomeTitle}>Create Account</Text>
+              </View>
+              
+              {/* Registration Icon on the Right */}
+              <View style={styles.headerIconContainer}>
+                <UserPlus size={26} stroke="#2563EB" />
+              </View>
+            </View>
 
-          {/* Form section */}
-          <View style={styles.formContainer}>
+            {/* Error Message */}
             {errorMsg && (
               <View style={styles.errorContainer}>
-                <AlertTriangle size={20} stroke="#EF4444" />
+                <AlertTriangle size={18} stroke="#EF4444" />
                 <Text style={styles.errorText}>{errorMsg}</Text>
               </View>
             )}
 
+            {/* Success Message */}
             {successMsg && (
               <View style={styles.successContainer}>
-                <CheckCircle size={20} stroke="#22C55E" />
+                <CheckCircle size={18} stroke="#22C55E" />
                 <Text style={styles.successText}>{successMsg}</Text>
               </View>
             )}
@@ -128,12 +161,7 @@ export default function RegisterScreen() {
             {/* Display Name Input */}
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Full Name</Text>
-              <View
-                style={[
-                  styles.inputWrapper,
-                  nameFocused && styles.inputWrapperFocused,
-                ]}
-              >
+              <View style={[styles.inputWrapper, nameFocused && styles.inputWrapperFocused]}>
                 <User size={20} stroke={nameFocused ? '#2563EB' : '#64748B'} style={styles.inputIcon} />
                 <TextInput
                   style={styles.textInput}
@@ -155,12 +183,7 @@ export default function RegisterScreen() {
             {/* Email Input */}
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Email Address</Text>
-              <View
-                style={[
-                  styles.inputWrapper,
-                  emailFocused && styles.inputWrapperFocused,
-                ]}
-              >
+              <View style={[styles.inputWrapper, emailFocused && styles.inputWrapperFocused]}>
                 <Mail size={20} stroke={emailFocused ? '#2563EB' : '#64748B'} style={styles.inputIcon} />
                 <TextInput
                   style={styles.textInput}
@@ -197,12 +220,7 @@ export default function RegisterScreen() {
             {/* Password Input */}
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Password</Text>
-              <View
-                style={[
-                  styles.inputWrapper,
-                  passwordFocused && styles.inputWrapperFocused,
-                ]}
-              >
+              <View style={[styles.inputWrapper, passwordFocused && styles.inputWrapperFocused]}>
                 <Lock size={20} stroke={passwordFocused ? '#2563EB' : '#64748B'} style={styles.inputIcon} />
                 <TextInput
                   style={styles.textInput}
@@ -236,12 +254,7 @@ export default function RegisterScreen() {
             {/* Confirm Password Input */}
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Confirm Password</Text>
-              <View
-                style={[
-                  styles.inputWrapper,
-                  confirmFocused && styles.inputWrapperFocused,
-                ]}
-              >
+              <View style={[styles.inputWrapper, confirmFocused && styles.inputWrapperFocused]}>
                 <Lock size={20} stroke={confirmFocused ? '#2563EB' : '#64748B'} style={styles.inputIcon} />
                 <TextInput
                   style={styles.textInput}
@@ -272,6 +285,17 @@ export default function RegisterScreen() {
               </View>
             </View>
 
+            {/* Bottom Links / Navigation */}
+            <View style={styles.linksRow}>
+              <Text style={styles.loginHintText}>Already have an account?</Text>
+              <TouchableOpacity
+                onPress={() => router.replace('/(auth)/login')}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.linkText}>Sign In</Text>
+              </TouchableOpacity>
+            </View>
+
             {/* Create Account button */}
             <TouchableOpacity
               onPress={handleRegister}
@@ -285,71 +309,51 @@ export default function RegisterScreen() {
                 <Text style={styles.primaryButtonText}>Create Account</Text>
               )}
             </TouchableOpacity>
-
-            {/* Back to Login Link */}
-            <View style={styles.loginContainer}>
-              <Text style={styles.loginText}>Already have an account? </Text>
-              <TouchableOpacity
-                onPress={() => router.replace('/(auth)/login')}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.loginLinkText}>Sign In</Text>
-              </TouchableOpacity>
-            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
 
       {/* Country Selection Modal */}
-      <Modal
+      <BottomSheet
         visible={showCountryModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowCountryModal(false)}
+        onClose={() => setShowCountryModal(false)}
+        title="Select Country"
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Country</Text>
-              <TouchableOpacity
-                onPress={() => setShowCountryModal(false)}
-                style={styles.modalCloseButton}
+        <FlatList
+          data={COUNTRIES}
+          keyExtractor={(item) => item.code}
+          ItemSeparatorComponent={() => <View style={styles.modalDivider} />}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={[
+                styles.countryItem,
+                country.code === item.code && styles.countryItemActive,
+              ]}
+              onPress={() => {
+                setCountry(item);
+                setShowCountryModal(false);
+              }}
+            >
+              <Text
+                style={[
+                  styles.countryItemText,
+                  country.code === item.code && styles.countryItemTextActive,
+                ]}
               >
-                <Text style={styles.modalCloseText}>Done</Text>
-              </TouchableOpacity>
-            </View>
-            <FlatList
-              data={COUNTRIES}
-              keyExtractor={(item) => item.code}
-              ItemSeparatorComponent={() => <View style={styles.modalDivider} />}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={[
-                    styles.countryItem,
-                    country.code === item.code && styles.countryItemActive,
-                  ]}
-                  onPress={() => {
-                    setCountry(item);
-                    setShowCountryModal(false);
-                  }}
-                >
-                  <Text
-                    style={[
-                      styles.countryItemText,
-                      country.code === item.code && styles.countryItemTextActive,
-                    ]}
-                  >
-                    {item.name}
-                  </Text>
-                  {country.code === item.code && (
-                    <Text style={styles.checkMark}>✓</Text>
-                  )}
-                </TouchableOpacity>
+                {item.name}
+              </Text>
+              {country.code === item.code && (
+                <Text style={styles.checkMark}>✓</Text>
               )}
-            />
-          </View>
-        </View>
-      </Modal>
+            </TouchableOpacity>
+          )}
+        />
+      </BottomSheet>
+
+      {/* App Version Footer */}
+      <View style={styles.footerVersion}>
+        <Text style={styles.versionText}>Version 1.0.2</Text>
+      </View>
     </SafeAreaView>
   );
 }
@@ -365,32 +369,111 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 24,
-    paddingTop: 16,
-    paddingBottom: 40,
+    paddingBottom: 24,
+    justifyContent: 'center',
   },
-  headerContainer: {
-    alignItems: 'center',
-    marginBottom: 28,
+  topHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    paddingBottom: 8,
+    width: '100%',
   },
-  brandText: {
-    fontSize: 20,
-    fontWeight: '700',
+  topLogoContainer: {
+    paddingTop: 4,
+  },
+  topLogoText: {
+    fontSize: 22,
+    fontWeight: '800',
     color: '#2563EB',
     letterSpacing: 0.5,
-    marginBottom: 8,
   },
-  titleText: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#0F172A',
-    marginBottom: 6,
+  topRightContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  subtitleText: {
-    fontSize: 16,
-    color: '#64748B',
+  langButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
-  formContainer: {
+  flagImage: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+  },
+  bellButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 12,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.06,
+    shadowRadius: 20,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
     width: '100%',
+    marginVertical: 16,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  cardHeaderLeft: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  welcomeSubtitle: {
+    fontSize: 14,
+    color: '#64748B',
+    fontWeight: '500',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  welcomeTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  headerIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#EFF6FF',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   errorContainer: {
     flexDirection: 'row',
@@ -400,7 +483,7 @@ const styles = StyleSheet.create({
     borderColor: '#FCA5A5',
     borderRadius: 12,
     padding: 12,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   errorText: {
     color: '#EF4444',
@@ -417,7 +500,7 @@ const styles = StyleSheet.create({
     borderColor: '#86EFAC',
     borderRadius: 12,
     padding: 12,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   successText: {
     color: '#16A34A',
@@ -439,7 +522,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     height: 52,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F8FAFC',
     borderWidth: 1.5,
     borderColor: '#E2E8F0',
     borderRadius: 12,
@@ -447,6 +530,7 @@ const styles = StyleSheet.create({
   },
   inputWrapperFocused: {
     borderColor: '#2563EB',
+    backgroundColor: '#FFFFFF',
   },
   inputIcon: {
     marginRight: 12,
@@ -469,75 +553,41 @@ const styles = StyleSheet.create({
   visibilityButton: {
     padding: 4,
   },
+  linksRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 24,
+  },
+  loginHintText: {
+    fontSize: 14,
+    color: '#64748B',
+  },
+  linkText: {
+    fontSize: 14,
+    color: '#2563EB',
+    fontWeight: '600',
+  },
   primaryButton: {
     height: 52,
     backgroundColor: '#2563EB',
-    borderRadius: 16,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#2563EB',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
-    elevation: 2,
-    marginTop: 12,
-    marginBottom: 24,
-  },
-  disabledButton: {
-    backgroundColor: '#93C5FD',
+    elevation: 4,
   },
   primaryButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
-  },
-  loginContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loginText: {
-    fontSize: 14,
-    color: '#64748B',
-  },
-  loginLinkText: {
-    fontSize: 14,
-    color: '#2563EB',
-    fontWeight: '600',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.4)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingTop: 20,
-    paddingBottom: 40,
-    maxHeight: '70%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    marginBottom: 16,
-  },
-  modalTitle: {
-    fontSize: 18,
     fontWeight: '700',
-    color: '#0F172A',
   },
-  modalCloseButton: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-  },
-  modalCloseText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#2563EB',
+  disabledButton: {
+    backgroundColor: '#93C5FD',
   },
   modalDivider: {
     height: 1,
@@ -566,5 +616,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#2563EB',
     fontWeight: '700',
+  },
+  footerVersion: {
+    width: '100%',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  versionText: {
+    fontSize: 12,
+    color: '#94A3B8',
+    fontWeight: '500',
   },
 });

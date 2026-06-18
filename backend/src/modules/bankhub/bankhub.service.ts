@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as fs from 'fs';
-import * as path from 'path';
+import { PrismaService } from '../../common/prisma/prisma.service';
 
 export interface BankHubTokenData {
   accessToken: string;
@@ -12,14 +11,15 @@ export interface BankHubTokenData {
 @Injectable()
 export class BankHubService {
   private readonly logger = new Logger(BankHubService.name);
-  private readonly tokenFilePath: string;
   private readonly clientId: string;
   private readonly secretKey: string;
   private readonly apiUrl: string;
   private readonly appUrl: string;
 
-  constructor(private readonly configService: ConfigService) {
-    this.tokenFilePath = path.join(process.cwd(), 'bankhub_tokens.json');
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly prisma: PrismaService,
+  ) {
     this.clientId = this.configService.get<string>('BANKHUB_CLIENT_ID') || this.configService.get<string>('VIETQR_CLIENT_ID') || '';
     this.secretKey = this.configService.get<string>('BANKHUB_SECRET_KEY') || this.configService.get<string>('VIETQR_API_KEY') || '';
     this.apiUrl = this.configService.get<string>('BANKHUB_API_URL', 'https://sandbox.bankhub.dev');
@@ -27,57 +27,64 @@ export class BankHubService {
   }
 
   /**
-   * Reads token data from persistent file
+   * Reads token data from database configuration
    */
-  private readTokenData(): BankHubTokenData | null {
+  private async readTokenData(): Promise<BankHubTokenData | null> {
     try {
-      if (fs.existsSync(this.tokenFilePath)) {
-        const data = fs.readFileSync(this.tokenFilePath, 'utf8');
-        return JSON.parse(data) as BankHubTokenData;
+      const config = await this.prisma.systemConfig.findUnique({
+        where: { key: 'bankhub_tokens' },
+      });
+      if (config && config.value) {
+        return JSON.parse(config.value) as BankHubTokenData;
       }
     } catch (error) {
-      this.logger.error(`Failed to read BankHub token file: ${error.message}`);
+      this.logger.error(`Failed to read BankHub token from database: ${error.message}`);
     }
     return null;
   }
 
   /**
-   * Writes token data to persistent file
+   * Writes token data to database configuration
    */
-  private writeTokenData(data: BankHubTokenData): void {
+  private async writeTokenData(data: BankHubTokenData): Promise<void> {
     try {
-      fs.writeFileSync(this.tokenFilePath, JSON.stringify(data, null, 2), 'utf8');
+      const value = JSON.stringify(data);
+      await this.prisma.systemConfig.upsert({
+        where: { key: 'bankhub_tokens' },
+        update: { value },
+        create: { key: 'bankhub_tokens', value },
+      });
     } catch (error) {
-      this.logger.error(`Failed to write BankHub token file: ${error.message}`);
+      this.logger.error(`Failed to write BankHub token to database: ${error.message}`);
     }
   }
 
   /**
-   * Deletes the persistent token file
+   * Deletes the database token configuration
    */
-  private deleteTokenData(): void {
+  private async deleteTokenData(): Promise<void> {
     try {
-      if (fs.existsSync(this.tokenFilePath)) {
-        fs.unlinkSync(this.tokenFilePath);
-      }
+      await this.prisma.systemConfig.deleteMany({
+        where: { key: 'bankhub_tokens' },
+      });
     } catch (error) {
-      this.logger.error(`Failed to delete BankHub token file: ${error.message}`);
+      this.logger.error(`Failed to delete BankHub token from database: ${error.message}`);
     }
   }
 
   /**
    * Checks if BankHub integration is connected
    */
-  public isConnected(): boolean {
-    const tokens = this.readTokenData();
+  public async isConnected(): Promise<boolean> {
+    const tokens = await this.readTokenData();
     return !!(tokens && tokens.accessToken);
   }
 
   /**
    * Disconnects BankHub connection
    */
-  public disconnect(): { success: boolean } {
-    this.deleteTokenData();
+  public async disconnect(): Promise<{ success: boolean }> {
+    await this.deleteTokenData();
     this.logger.log('Disconnected BankHub integration.');
     return { success: true };
   }
@@ -85,8 +92,8 @@ export class BankHubService {
   /**
    * Returns current connection status
    */
-  public getStatus(): { connected: boolean; linkedAt?: string; grantId?: string } {
-    const tokens = this.readTokenData();
+  public async getStatus(): Promise<{ connected: boolean; linkedAt?: string; grantId?: string }> {
+    const tokens = await this.readTokenData();
     if (tokens) {
       return {
         connected: true,
@@ -178,7 +185,7 @@ export class BankHubService {
       linkedAt: new Date().toISOString(),
     };
 
-    this.writeTokenData(tokenData);
+    await this.writeTokenData(tokenData);
     this.logger.log(`BankHub access token saved successfully. Grant ID: ${tokenData.grantId}`);
 
     return tokenData;
@@ -188,7 +195,7 @@ export class BankHubService {
    * Resolves beneficiary account name
    */
   public async resolveBeneficiaryName(bankCode: string, accountNumber: string): Promise<string> {
-    const tokens = this.readTokenData();
+    const tokens = await this.readTokenData();
     if (!tokens || !tokens.accessToken) {
       this.logger.warn('No active BankHub access token. Cannot perform name lookup.');
       throw new Error('BankHub not connected. Please link your bank account in the Admin settings first.');
@@ -250,7 +257,7 @@ export class BankHubService {
     toAccountNumber: string;
     description: string;
   }): Promise<any> {
-    const tokens = this.readTokenData();
+    const tokens = await this.readTokenData();
     if (!tokens || !tokens.accessToken) {
       throw new Error('BankHub not connected. Please link your bank account in the Admin settings first.');
     }

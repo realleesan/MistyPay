@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -11,12 +11,46 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../src/store/authStore';
 import { User, LogOut, Lock, Globe, Shield, HelpCircle, ArrowLeft, ChevronRight } from 'lucide-react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user, logout } = useAuthStore();
+
+  const [kycEnabled, setKycEnabled] = useState(false);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const checkKyc = async () => {
+        if (user && user.email) {
+          const safeEmail = user.email.replace(/[^a-zA-Z0-9._-]/g, '_');
+          const enabled = await SecureStore.getItemAsync(`ekyc_enabled_${safeEmail}`);
+          setKycEnabled(enabled === 'true');
+        }
+      };
+      checkKyc();
+    }, [user])
+  );
+
+  const handleKycPress = () => {
+    if (kycEnabled) {
+      Alert.alert(
+        'eKYC Status',
+        'Your biometric face profile is already registered and active on this device.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Re-register Face', 
+            onPress: () => router.push('/(main)/ekyc-setup') 
+          }
+        ]
+      );
+    } else {
+      router.push('/(main)/ekyc-setup');
+    }
+  };
 
   const handlePinPress = () => {
     if (!user?.hasPin) {
@@ -125,13 +159,21 @@ export default function ProfileScreen() {
           </TouchableOpacity>
 
           {/* Authentication Status Row */}
-          <View style={styles.optionRow}>
+          <TouchableOpacity
+            style={styles.optionRow}
+            activeOpacity={0.7}
+            onPress={handleKycPress}
+          >
             <View style={styles.optionLeft}>
               <Shield size={20} stroke="#64748B" style={styles.optionIcon} />
-              <Text style={styles.optionText}>Security Status</Text>
+              <Text style={styles.optionText}>Biometric eKYC</Text>
             </View>
-            <Text style={styles.optionValueText}>Verified</Text>
-          </View>
+            <View style={styles.badgeContainer}>
+              <Text style={[styles.badgeText, kycEnabled ? styles.badgeActive : styles.badgeInactive]}>
+                {kycEnabled ? 'Active' : 'Not Set'}
+              </Text>
+            </View>
+          </TouchableOpacity>
 
           <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Support</Text>
 

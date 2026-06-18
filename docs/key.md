@@ -1,6 +1,10 @@
 ### Database URL (Supabase)
 
-DATABASE_URL=postgresql://postgres.vygyvgajxpqdqdwobskg:21042005nhatT%40@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres?pgbouncer=true
+# Transaction mode pooler (used by backend)
+DATABASE_URL=postgresql://postgres.vygyvgajxpqdqdwobskg:nhatT2104200@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres?pgbouncer=true
+
+# Session mode pooler (used for migrations)
+DIRECT_URL=postgresql://postgres.vygyvgajxpqdqdwobskg:nhatT2104200@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres
 
 ### Redis Config (Upstash)
 

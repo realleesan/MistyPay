@@ -14,8 +14,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useAuthStore } from '../../../src/store/authStore';
 import { usePaymentStore, PaymentOrderDetails } from '../../../src/store/paymentStore';
-import { Scan, History, User, CreditCard, RefreshCcw, Landmark, Clock } from 'lucide-react-native';
+import { Scan, History, User, CreditCard, RefreshCcw, Landmark, Clock, ScanFace } from 'lucide-react-native';
 import { api } from '../../../src/services/api';
+import * as SecureStore from 'expo-secure-store';
+import BottomSheet from '../../../src/components/ui/BottomSheet';
 
 interface SimplePaymentItem {
   id: string;
@@ -41,6 +43,56 @@ export default function HomeScreen() {
   const [payments, setPayments] = useState<SimplePaymentItem[]>([]);
   const [paymentsLoading, setPaymentsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  const [showEkycPrompt, setShowEkycPrompt] = useState(false);
+
+  useEffect(() => {
+    const checkEkycPrompt = async () => {
+      if (!user || !user.email) return;
+      try {
+        const safeEmail = user.email.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const enabled = await SecureStore.getItemAsync(`ekyc_enabled_${safeEmail}`);
+        if (enabled === 'true') return;
+
+        const snoozeUntilStr = await SecureStore.getItemAsync(`ekyc_snooze_${safeEmail}`);
+        if (snoozeUntilStr) {
+          const snoozeUntil = parseInt(snoozeUntilStr, 10);
+          if (Date.now() < snoozeUntil) {
+            return; // Prompt is currently snoozed
+          }
+        }
+
+        // Show prompt if not enabled and not currently snoozed
+        setShowEkycPrompt(true);
+      } catch (e) {
+        console.warn('Failed to check eKYC promo status:', e);
+      }
+    };
+
+    if (isAuthenticated && user) {
+      const timer = setTimeout(() => {
+        checkEkycPrompt();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [isAuthenticated, user]);
+
+  const handleSnoozeEkyc = async () => {
+    if (!user || !user.email) return;
+    try {
+      const safeEmail = user.email.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const snoozeUntil = Date.now() + 5 * 24 * 60 * 60 * 1000;
+      await SecureStore.setItemAsync(`ekyc_snooze_${safeEmail}`, String(snoozeUntil));
+      setShowEkycPrompt(false);
+    } catch (e) {
+      console.error('Failed to set eKYC snooze:', e);
+    }
+  };
+
+  const handleSetUpEkyc = () => {
+    setShowEkycPrompt(false);
+    router.push('/(main)/ekyc-setup');
+  };
 
   const fetchCurrentRate = async () => {
     setRateLoading(true);
@@ -257,6 +309,39 @@ export default function HomeScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Biometric KYC Promotion Bottom Sheet */}
+      <BottomSheet
+        visible={showEkycPrompt}
+        onClose={() => setShowEkycPrompt(false)}
+        title="Biometric Login Setup"
+      >
+        <View style={styles.ekycPromptContent}>
+          <View style={styles.ekycIconWrapper}>
+            <ScanFace size={48} stroke="#2563EB" />
+          </View>
+          <Text style={styles.ekycPromptTitle}>Enable Quick Login with eKYC</Text>
+          <Text style={styles.ekycPromptDesc}>
+            Access your account quickly and securely using face recognition. Skip typing your password every time.
+          </Text>
+          
+          <TouchableOpacity
+            style={styles.ekycPrimaryBtn}
+            onPress={handleSetUpEkyc}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.ekycPrimaryText}>Set Up Now</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={styles.ekycSecondaryBtn}
+            onPress={handleSnoozeEkyc}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.ekycSecondaryText}>Remind Me Later</Text>
+          </TouchableOpacity>
+        </View>
+      </BottomSheet>
     </SafeAreaView>
   );
 }
@@ -487,5 +572,66 @@ const styles = StyleSheet.create({
   statusMiniText: {
     fontSize: 10,
     fontWeight: '700',
+  },
+  ekycPromptContent: {
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingBottom: 24,
+    alignItems: 'center',
+  },
+  ekycIconWrapper: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#EFF6FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  ekycPromptTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#0F172A',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  ekycPromptDesc: {
+    fontSize: 14,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 28,
+  },
+  ekycPrimaryBtn: {
+    height: 52,
+    backgroundColor: '#2563EB',
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+    marginBottom: 12,
+  },
+  ekycPrimaryText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  ekycSecondaryBtn: {
+    height: 52,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+  },
+  ekycSecondaryText: {
+    color: '#475569',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

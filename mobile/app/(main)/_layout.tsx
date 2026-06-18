@@ -20,6 +20,7 @@ export default function MainLayout() {
       <Stack.Screen name="profile" options={{ gestureEnabled: true }} />
       <Stack.Screen name="edit-profile" options={{ gestureEnabled: true }} />
       <Stack.Screen name="change-pin" options={{ gestureEnabled: true }} />
+      <Stack.Screen name="ekyc-setup" options={{ gestureEnabled: true }} />
       <Stack.Screen name="confirm" options={{ gestureEnabled: false }} />
       <Stack.Screen name="payment" options={{ gestureEnabled: false }} />
       <Stack.Screen name="success" options={{ gestureEnabled: false }} />

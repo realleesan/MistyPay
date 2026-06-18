@@ -18,6 +18,7 @@ import { api } from '../../src/services/api';
 import { usePaymentStore, PaymentOrderDetails } from '../../src/store/paymentStore';
 import { useAuthStore } from '../../src/store/authStore';
 import { useRouter } from 'expo-router';
+import BottomSheet from '../../src/components/ui/BottomSheet';
 
 interface PaymentHistoryItem {
   id: string;
@@ -241,117 +242,107 @@ export default function HistoryScreen() {
       )}
 
       {/* Detail Modal */}
-      {selectedPayment && (
-        <Modal
-          visible={true}
-          transparent={true}
-          animationType="slide"
-          onRequestClose={() => setSelectedPayment(null)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Transaction Details</Text>
-                <TouchableOpacity onPress={() => setSelectedPayment(null)} style={styles.closeModalButton}>
-                  <X size={20} stroke="#64748B" />
-                </TouchableOpacity>
+      <BottomSheet
+        visible={!!selectedPayment}
+        onClose={() => setSelectedPayment(null)}
+        title="Transaction Details"
+      >
+        {selectedPayment && (
+          <View style={{ maxHeight: '90%' }}>
+            <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+              {/* Top status card */}
+              <View style={styles.modalStatusContainer}>
+                <Text style={styles.modalAmountVnd}>{formatVnd(selectedPayment.amountVnd)}</Text>
+                <Text style={styles.modalAmountUsdt}>{formatUsdt(selectedPayment.requiredUsdt)}</Text>
+                
+                <View style={[styles.modalStatusBadge, { backgroundColor: getStatusDetails(selectedPayment.paymentStatus).bg }]}>
+                  <Text style={[styles.modalStatusText, { color: getStatusDetails(selectedPayment.paymentStatus).color }]}>
+                    {getStatusDetails(selectedPayment.paymentStatus).label}
+                  </Text>
+                </View>
               </View>
 
-              <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
-                {/* Top status card */}
-                <View style={styles.modalStatusContainer}>
-                  <Text style={styles.modalAmountVnd}>{formatVnd(selectedPayment.amountVnd)}</Text>
-                  <Text style={styles.modalAmountUsdt}>{formatUsdt(selectedPayment.requiredUsdt)}</Text>
-                  
-                  <View style={[styles.modalStatusBadge, { backgroundColor: getStatusDetails(selectedPayment.paymentStatus).bg }]}>
-                    <Text style={[styles.modalStatusText, { color: getStatusDetails(selectedPayment.paymentStatus).color }]}>
-                      {getStatusDetails(selectedPayment.paymentStatus).label}
-                    </Text>
+              {/* Details Section */}
+              <View style={styles.detailSection}>
+                <Text style={styles.sectionTitle}>Merchant Information</Text>
+                <View style={styles.detailRow}>
+                  <Landmark size={18} stroke="#64748B" style={styles.rowIcon} />
+                  <View>
+                    <Text style={styles.rowLabel}>Merchant Name</Text>
+                    <Text style={styles.rowValue}>{selectedPayment.merchant.name}</Text>
                   </View>
                 </View>
 
-                {/* Details Section */}
-                <View style={styles.detailSection}>
-                  <Text style={styles.sectionTitle}>Merchant Information</Text>
-                  <View style={styles.detailRow}>
-                    <Landmark size={18} stroke="#64748B" style={styles.rowIcon} />
-                    <View>
-                      <Text style={styles.rowLabel}>Merchant Name</Text>
-                      <Text style={styles.rowValue}>{selectedPayment.merchant.name}</Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.detailRow}>
-                    <Landmark size={18} stroke="#64748B" style={styles.rowIcon} />
-                    <View>
-                      <Text style={styles.rowLabel}>Bank</Text>
-                      <Text style={styles.rowValue}>{selectedPayment.merchant.bankName}</Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.detailRow}>
-                    <Hash size={18} stroke="#64748B" style={styles.rowIcon} />
-                    <View>
-                      <Text style={styles.rowLabel}>Account Number</Text>
-                      <Text style={styles.rowValue}>{selectedPayment.merchant.accountNumber}</Text>
-                    </View>
+                <View style={styles.detailRow}>
+                  <Landmark size={18} stroke="#64748B" style={styles.rowIcon} />
+                  <View>
+                    <Text style={styles.rowLabel}>Bank</Text>
+                    <Text style={styles.rowValue}>{selectedPayment.merchant.bankName}</Text>
                   </View>
                 </View>
 
-                <View style={styles.detailSection}>
-                  <Text style={styles.sectionTitle}>Payment Details</Text>
-                  <View style={styles.detailRow}>
-                    <Hash size={18} stroke="#64748B" style={styles.rowIcon} />
-                    <View>
-                      <Text style={styles.rowLabel}>Order Code</Text>
-                      <Text style={styles.rowValue}>{selectedPayment.orderCode}</Text>
-                    </View>
+                <View style={styles.detailRow}>
+                  <Hash size={18} stroke="#64748B" style={styles.rowIcon} />
+                  <View>
+                    <Text style={styles.rowLabel}>Account Number</Text>
+                    <Text style={styles.rowValue}>{selectedPayment.merchant.accountNumber}</Text>
                   </View>
+                </View>
+              </View>
 
+              <View style={styles.detailSection}>
+                <Text style={styles.sectionTitle}>Payment Details</Text>
+                <View style={styles.detailRow}>
+                  <Hash size={18} stroke="#64748B" style={styles.rowIcon} />
+                  <View>
+                    <Text style={styles.rowLabel}>Order Code</Text>
+                    <Text style={styles.rowValue}>{selectedPayment.orderCode}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.detailRow}>
+                  <Calendar size={18} stroke="#64748B" style={styles.rowIcon} />
+                  <View>
+                    <Text style={styles.rowLabel}>Created Date</Text>
+                    <Text style={styles.rowValue}>{formatDate(selectedPayment.createdAt)}</Text>
+                  </View>
+                </View>
+
+                {selectedPayment.completedAt && (
                   <View style={styles.detailRow}>
                     <Calendar size={18} stroke="#64748B" style={styles.rowIcon} />
                     <View>
-                      <Text style={styles.rowLabel}>Created Date</Text>
-                      <Text style={styles.rowValue}>{formatDate(selectedPayment.createdAt)}</Text>
+                      <Text style={styles.rowLabel}>Completed Date</Text>
+                      <Text style={styles.rowValue}>{formatDate(selectedPayment.completedAt)}</Text>
                     </View>
                   </View>
+                )}
 
-                  {selectedPayment.completedAt && (
-                    <View style={styles.detailRow}>
-                      <Calendar size={18} stroke="#64748B" style={styles.rowIcon} />
-                      <View>
-                        <Text style={styles.rowLabel}>Completed Date</Text>
-                        <Text style={styles.rowValue}>{formatDate(selectedPayment.completedAt)}</Text>
-                      </View>
-                    </View>
-                  )}
-
-                  <View style={styles.detailRow}>
-                    <DollarSign size={18} stroke="#64748B" style={styles.rowIcon} />
-                    <View>
-                      <Text style={styles.rowLabel}>Deposit Wallet Address</Text>
-                      <Text style={styles.rowValueAddress} numberOfLines={1} ellipsizeMode="middle">
-                        {selectedPayment.depositAddress}
-                      </Text>
-                    </View>
+                <View style={styles.detailRow}>
+                  <DollarSign size={18} stroke="#64748B" style={styles.rowIcon} />
+                  <View>
+                    <Text style={styles.rowLabel}>Deposit Wallet Address</Text>
+                    <Text style={styles.rowValueAddress} numberOfLines={1} ellipsizeMode="middle">
+                      {selectedPayment.depositAddress}
+                    </Text>
                   </View>
                 </View>
-              </ScrollView>
+              </View>
+            </ScrollView>
 
-              {/* Action for WAITING_USDT */}
-              {selectedPayment.paymentStatus === 'WAITING_USDT' && (
-                <TouchableOpacity
-                  style={styles.resumeButton}
-                  onPress={() => handleResumePayment(selectedPayment)}
-                >
-                  <Clock size={18} stroke="#FFFFFF" style={{ marginRight: 8 }} />
-                  <Text style={styles.resumeButtonText}>Resume Payment (Send USDT)</Text>
-                </TouchableOpacity>
-              )}
-            </View>
+            {/* Action for WAITING_USDT */}
+            {selectedPayment.paymentStatus === 'WAITING_USDT' && (
+              <TouchableOpacity
+                style={styles.resumeButton}
+                onPress={() => handleResumePayment(selectedPayment)}
+              >
+                <Clock size={18} stroke="#FFFFFF" style={{ marginRight: 8 }} />
+                <Text style={styles.resumeButtonText}>Resume Payment (Send USDT)</Text>
+              </TouchableOpacity>
+            )}
           </View>
-        </Modal>
-      )}
+        )}
+      </BottomSheet>
     </View>
   );
 }
