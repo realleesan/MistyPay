@@ -148,6 +148,18 @@ export class BankHubService {
   }
 
   /**
+   * Returns diagnostics information with masked credentials
+   */
+  public getDebugInfo() {
+    return {
+      clientId: this.clientId ? `${this.clientId.substring(0, 8)}...${this.clientId.substring(this.clientId.length - 8)}` : 'NOT_SET',
+      secretKey: this.secretKey ? `${this.secretKey.substring(0, 8)}...${this.secretKey.substring(this.secretKey.length - 8)}` : 'NOT_SET',
+      apiUrl: this.apiUrl,
+      appUrl: this.appUrl,
+    };
+  }
+
+  /**
    * Exchanges publicToken for accessToken and saves it
    */
   public async exchangePublicToken(publicToken: string): Promise<BankHubTokenData> {

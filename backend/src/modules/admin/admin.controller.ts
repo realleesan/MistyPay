@@ -80,6 +80,12 @@ export class AdminController {
     return this.bankHubService.getStatus();
   }
 
+  @Get('bankhub/debug')
+  @UseGuards(AdminAuthGuard)
+  async getBankHubDebug() {
+    return this.bankHubService.getDebugInfo();
+  }
+
   @Post('bankhub/grant-url')
   @HttpCode(HttpStatus.OK)
   @UseGuards(AdminAuthGuard)
